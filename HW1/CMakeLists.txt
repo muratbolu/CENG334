@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
     src/parser.c
+    src/main.cpp
 )
 
 add_executable (${PROJECT_NAME} ${SOURCES})
