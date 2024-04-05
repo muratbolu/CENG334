@@ -88,7 +88,7 @@ void write_buffer(parsed_input* input, char *buffer, int is_command, int is_pipe
     }
     else {
         input->inputs[input_index].type = INPUT_TYPE_COMMAND;
-        input->inputs[input_index].data.cmd.args[arg_index] = (char *)calloc(strlen(buffer) + 1, sizeof(char));
+        input->inputs[input_index].data.cmd.args[arg_index] = (char *)calloc(sizeof(buffer), sizeof(char));
         strcpy(input->inputs[input_index].data.cmd.args[arg_index], buffer);
         input->inputs[input_index].data.cmd.args[arg_index+1] = NULL;
         if ( is_command )
