@@ -3,13 +3,11 @@
 
 #include <cstring>
 #include <iostream>
-#include <memory>
 #include <sched.h>
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <vector>
 
 parsed_input eshell::get_input() noexcept
 {
