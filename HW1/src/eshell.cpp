@@ -1,6 +1,7 @@
 #include "eshell.hpp"
 #include "parser.h"
 
+#include <array>
 #include <cstring>
 #include <iostream>
 #include <sched.h>
@@ -28,12 +29,12 @@ bool eshell::process_one_input(std::string_view sv) noexcept
     pid_t f{ fork() };
     if (f == 0) // child
     {
-        execlp(sv.data(), sv.data(), nullptr);
+        std::array<char*, 2> args{ const_cast<char*>(sv.data()), nullptr };
+        execvp(sv.data(), args.data());
     }
     else // parent
     {
-        int status;
-        waitpid(f, &status, 0);
+        waitpid(f, nullptr, 0);
     }
     return true;
 }
