@@ -17,6 +17,7 @@ parsed_input eshell::get_input() noexcept
     std::getline(std::cin, str, '\n');
     std::unique_ptr<parsed_input> parsed = std::make_unique<parsed_input>();
     std::vector<char> input(str.cbegin(), str.cend());
+    input.push_back('\0');
     parse_line(input.data(), parsed.get());
     return *parsed;
 }
