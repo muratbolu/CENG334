@@ -4,18 +4,24 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-parsed_input eshell::get_input() noexcept
+std::optional<parsed_input> eshell::get_input() noexcept
 {
     std::string str;
     std::getline(std::cin, str, '\n');
     parsed_input parsed;
-    parse_line(str.data(), &parsed);
-    return parsed;
+    if (parse_line(str.data(), &parsed) == 0)
+    {
+        // invalid input, return null
+        return std::nullopt;
+    }
+    // pretty_print(&parsed);
+    return std::make_optional(parsed);
 }
 
 bool eshell::is_quit(char* arg) noexcept
@@ -41,10 +47,18 @@ void eshell::execute(char* const argv[MAX_ARGS]) noexcept
 }
 
 // Returns false if exiting
-bool eshell::process_input(parsed_input p) noexcept
+bool eshell::process_input(std::optional<parsed_input> p_opt) noexcept
 {
+    if (!p_opt.has_value())
+    {
+        // invalid input, continue
+        return true;
+    }
+
+    parsed_input& p{ *p_opt };
     bool return_val{ true };
     SEPARATOR sep{ p.separator };
+
     switch (sep)
     {
         case SEPARATOR_NONE:

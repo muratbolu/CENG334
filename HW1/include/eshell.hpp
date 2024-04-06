@@ -1,7 +1,9 @@
 #pragma once
 
 #include "parser.h"
+
 #include <cstdio>
+#include <optional>
 
 class eshell
 {
@@ -19,8 +21,8 @@ class eshell
         {
             std::fputs("/> ", stdout);
         }
-        static parsed_input get_input() noexcept;
-        static bool process_input(parsed_input) noexcept;
+        static std::optional<parsed_input> get_input() noexcept;
+        static bool process_input(std::optional<parsed_input>) noexcept;
         // NOLINTNEXTLINE (*-avoid-c-arrays)
         static void execute(char* const[MAX_ARGS]) noexcept;
         static bool is_quit(char*) noexcept;
