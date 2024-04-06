@@ -1,6 +1,7 @@
 #include "eshell.hpp"
 #include "parser.h"
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -17,58 +18,75 @@ parsed_input eshell::get_input() noexcept
     return parsed;
 }
 
-bool eshell::is_quit(char* const arg) noexcept
+bool eshell::is_quit(char* arg) noexcept
 {
+    assert(arg != nullptr);
     return std::strcmp(arg, "quit") == 0;
 }
 
-bool eshell::process_one_input(char* const argv[]) noexcept
+// NOLINTNEXTLINE (*-avoid-c-arrays)
+void eshell::execute(char* const argv[MAX_ARGS]) noexcept
 {
-    if (is_quit(argv[0]))
-    {
-        return false;
-    }
+    assert(argv != nullptr);
     pid_t f{ fork() };
     if (f == 0) // child
     {
+        // NOLINTNEXTLINE (*-pointer-arithmetic)
         execvp(argv[0], argv);
     }
     else // parent
     {
         waitpid(f, nullptr, 0);
     }
-    return true;
 }
 
 // Returns false if exiting
 bool eshell::process_input(parsed_input p) noexcept
 {
+    bool return_val{ true };
     SEPARATOR sep{ p.separator };
     switch (sep)
     {
         case SEPARATOR_NONE:
-            if (p.num_inputs <= 0)
+            if (p.num_inputs <= 0) // No input
             {
-                return true;
+                break;
             }
-            else
+
+            assert(p.num_inputs > 0);
+            if (is_quit(p.inputs[0].data.cmd.args[0]))
             {
-                return process_one_input(p.inputs[0].data.cmd.args);
+                return_val = false;
+                break;
             }
+
+            assert(p.num_inputs > 0);
+            // NOLINTNEXTLINE (*-array-to-pointer-decay)
+            execute(p.inputs[0].data.cmd.args);
+            break;
+
         case SEPARATOR_PIPE:
+            assert(p.num_inputs > 0);
             break;
         case SEPARATOR_SEQ:
+            assert(p.num_inputs > 0);
             break;
         case SEPARATOR_PARA:
+            assert(p.num_inputs > 0);
             break;
-    } // default case not needed
-
-    if (p.num_inputs == 3 && p.inputs[0].type == INPUT_TYPE_COMMAND &&
-        p.inputs[1].type == INPUT_TYPE_PIPELINE &&
-        p.inputs[2].type == INPUT_TYPE_COMMAND &&
-        std::strcmp(*(p.inputs[1].data.cmd.args), "|") == 0)
-    {
-        ;
+        default: // default case unreachable
+            assert(false);
     }
-    return true;
+    free_parsed_input(&p);
+    return return_val;
 }
+
+/*
+if (p.num_inputs == 3 && p.inputs[0].type == INPUT_TYPE_COMMAND &&
+    p.inputs[1].type == INPUT_TYPE_PIPELINE &&
+    p.inputs[2].type == INPUT_TYPE_COMMAND &&
+    std::strcmp(*(p.inputs[1].data.cmd.args), "|") == 0)
+{
+    ;
+}
+*/

@@ -21,6 +21,7 @@ class eshell
         }
         static parsed_input get_input() noexcept;
         static bool process_input(parsed_input) noexcept;
-        static bool process_one_input(char* const[]) noexcept;
-        static bool is_quit(char* const) noexcept;
+        // NOLINTNEXTLINE (*-avoid-c-arrays)
+        static void execute(char* const[MAX_ARGS]) noexcept;
+        static bool is_quit(char*) noexcept;
 };
