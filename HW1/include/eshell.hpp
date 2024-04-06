@@ -2,7 +2,6 @@
 
 #include "parser.h"
 #include <cstdio>
-#include <string_view>
 
 class eshell
 {
@@ -22,5 +21,6 @@ class eshell
         }
         static parsed_input get_input() noexcept;
         static bool process_input(parsed_input) noexcept;
-        static bool process_one_input(std::string_view) noexcept;
+        static bool process_one_input(char* const[]) noexcept;
+        static bool is_quit(char* const) noexcept;
 };

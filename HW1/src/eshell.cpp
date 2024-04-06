@@ -1,12 +1,9 @@
 #include "eshell.hpp"
 #include "parser.h"
 
-#include <array>
 #include <cstring>
 #include <iostream>
-#include <sched.h>
 #include <string>
-#include <string_view>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -20,17 +17,21 @@ parsed_input eshell::get_input() noexcept
     return parsed;
 }
 
-bool eshell::process_one_input(std::string_view sv) noexcept
+bool eshell::is_quit(char* const arg) noexcept
 {
-    if (sv == "quit")
+    return std::strcmp(arg, "quit") == 0;
+}
+
+bool eshell::process_one_input(char* const argv[]) noexcept
+{
+    if (is_quit(argv[0]))
     {
         return false;
     }
     pid_t f{ fork() };
     if (f == 0) // child
     {
-        std::array<char*, 2> args{ const_cast<char*>(sv.data()), nullptr };
-        execvp(sv.data(), args.data());
+        execvp(argv[0], argv);
     }
     else // parent
     {
@@ -42,16 +43,26 @@ bool eshell::process_one_input(std::string_view sv) noexcept
 // Returns false if exiting
 bool eshell::process_input(parsed_input p) noexcept
 {
-    int num_inputs{ p.num_inputs };
-    switch (num_inputs)
+    SEPARATOR sep{ p.separator };
+    switch (sep)
     {
-        case 0:
-            return true;
-        case 1:
-            return process_one_input(p.inputs[0].data.cmd.args[0]);
-        default:
-            return true;
-    }
+        case SEPARATOR_NONE:
+            if (p.num_inputs <= 0)
+            {
+                return true;
+            }
+            else
+            {
+                return process_one_input(p.inputs[0].data.cmd.args);
+            }
+        case SEPARATOR_PIPE:
+            break;
+        case SEPARATOR_SEQ:
+            break;
+        case SEPARATOR_PARA:
+            break;
+    } // default case not needed
+
     if (p.num_inputs == 3 && p.inputs[0].type == INPUT_TYPE_COMMAND &&
         p.inputs[1].type == INPUT_TYPE_PIPELINE &&
         p.inputs[2].type == INPUT_TYPE_COMMAND &&
@@ -59,4 +70,5 @@ bool eshell::process_input(parsed_input p) noexcept
     {
         ;
     }
+    return true;
 }
