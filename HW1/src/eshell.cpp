@@ -10,19 +10,25 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <utility>
-#include <vector>
 
 std::optional<parsed_input> eshell::get_input() noexcept
 {
     std::string str;
-    std::getline(std::cin, str, '\n');
+    std::getline(std::cin, str);
     parsed_input parsed;
+    if (std::cin.eof()) // reached EOF
+    {
+        str = "quit";
+        int check{ parse_line(str.data(), &parsed) };
+        assert(check != 0);
+        return std::make_optional(parsed);
+    }
     if (parse_line(str.data(), &parsed) == 0)
     {
         // invalid input, return null
         return std::nullopt;
     }
-    pretty_print(&parsed);
+    // pretty_print(&parsed);
     return std::make_optional(parsed);
 }
 
@@ -108,7 +114,39 @@ eshell::fd eshell::create_pipe() noexcept
 void eshell::execute_pipeline(const parsed_input& p) noexcept
 {
     assert(p.num_inputs > 0);
-    std::vector<pid_t> children(p.num_inputs);
+    auto pipe = create_pipe();
+    if (fork() == 0)
+    {
+        close(pipe.first);
+        dup2(pipe.second, STDOUT_FILENO);
+        close(pipe.second);
+        // NOLINTNEXTLINE (*-array-to-pointer-decay)
+        auto argv{ p.inputs[0].data.cmd.args };
+        // NOLINTNEXTLINE (*-pointer-arithmetic)
+        execvp(argv[0], argv);
+    }
+    else
+    {
+        if (fork() == 0)
+        {
+            close(pipe.second);
+            dup2(pipe.first, STDIN_FILENO);
+            close(pipe.first);
+            // NOLINTNEXTLINE (*-array-to-pointer-decay)
+            auto argv{ p.inputs[1].data.cmd.args };
+            // NOLINTNEXTLINE (*-pointer-arithmetic)
+            execvp(argv[0], argv);
+        }
+        else
+        {
+            close(pipe.first);
+            close(pipe.second);
+            wait(nullptr);
+            wait(nullptr);
+        }
+    }
+
+    /*
     std::vector<fd> pipes(p.num_inputs - 1);
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
@@ -120,20 +158,23 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
 
         if (children[i] == 0) // child
         {
-            std::cerr << "children[" << i << "]" << std::endl;
             if (i > 0)
             {
-                int input{ pipes[i - 1].first };
-                dup2(input, STDIN_FILENO);
                 int output{ pipes[i - 1].second };
                 close(output);
+
+                int input{ pipes[i - 1].first };
+                dup2(input, STDIN_FILENO);
+                close(input);
             }
             if (i < p.num_inputs - 1)
             {
-                int output{ pipes[i].second };
-                dup2(output, STDOUT_FILENO);
                 int input{ pipes[i].first };
                 close(input);
+
+                int output{ pipes[i].second };
+                dup2(output, STDOUT_FILENO);
+                close(output);
             }
             // NOLINTNEXTLINE (*-array-to-pointer-decay)
             auto argv{ p.inputs[i].data.cmd.args };
@@ -153,4 +194,5 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
     {
         waitpid(children[i], nullptr, 0);
     }
+    */
 }
