@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <utility>
+#include <vector>
 
 std::optional<parsed_input> eshell::get_input() noexcept
 {
@@ -113,6 +114,7 @@ eshell::fd eshell::create_pipe() noexcept
 
 void eshell::execute_pipeline(const parsed_input& p) noexcept
 {
+    /*
     assert(p.num_inputs > 0);
     auto pipe = create_pipe();
     if (fork() == 0)
@@ -145,54 +147,61 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
             wait(nullptr);
         }
     }
+    */
 
-    /*
+    assert(p.num_inputs > 0);
+    std::vector<pid_t> children(p.num_inputs);
     std::vector<fd> pipes(p.num_inputs - 1);
+
+    // initialize all pipes
+    for (int i{ 0 }; i < p.num_inputs - 1; ++i)
+    {
+        pipes[i] = create_pipe();
+    }
+
+    // spawn children
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        if (i < p.num_inputs - 1)
-        {
-            pipes[i] = create_pipe();
-        }
         children[i] = fork();
-
         if (children[i] == 0) // child
         {
+            // set input, if applicable
             if (i > 0)
             {
-                int output{ pipes[i - 1].second };
-                close(output);
-
                 int input{ pipes[i - 1].first };
                 dup2(input, STDIN_FILENO);
-                close(input);
             }
+
+            // set output, if applicable
             if (i < p.num_inputs - 1)
             {
-                int input{ pipes[i].first };
-                close(input);
-
                 int output{ pipes[i].second };
                 dup2(output, STDOUT_FILENO);
+            }
+
+            // close all other pipes
+            for (int j{ 0 }; j < p.num_inputs - 1; ++j)
+            {
+                int input{ pipes[j].first };
+                close(input);
+                int output{ pipes[j].second };
                 close(output);
             }
+
+            // execute command
             // NOLINTNEXTLINE (*-array-to-pointer-decay)
             auto argv{ p.inputs[i].data.cmd.args };
             // NOLINTNEXTLINE (*-pointer-arithmetic)
             execvp(argv[0], argv);
         }
-        else // parent
-        {
-            if (i < p.num_inputs - 1)
-            {
-                close(pipes[i].first);
-                close(pipes[i].second);
-            }
-        }
+    }
+    for (int i{ 0 }; i < p.num_inputs - 1; ++i)
+    {
+        close(pipes[i].first);
+        close(pipes[i].second);
     }
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
         waitpid(children[i], nullptr, 0);
     }
-    */
 }
