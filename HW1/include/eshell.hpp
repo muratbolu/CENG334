@@ -13,7 +13,7 @@ class eshell
     public:
         eshell() noexcept
         {
-            do // NOLINT (cppcoreguidelines-avoid-do-while)
+            do // NOLINT(cppcoreguidelines-avoid-do-while)
             {
                 print_prompt();
             } while (process_input(get_input()));
