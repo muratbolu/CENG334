@@ -111,6 +111,32 @@ eshell::fd eshell::create_pipe() noexcept
     return std::make_pair(fd[0], fd[1]);
 }
 
+void eshell::set_pipes(const std::vector<fd>& pipes, int i) noexcept
+{
+    // set input, if applicable
+    if (i > 0)
+    {
+        int input{ pipes[i - 1].first };
+        dup2(input, STDIN_FILENO);
+    }
+
+    // set output, if applicable
+    if (i < pipes.size())
+    {
+        int output{ pipes[i].second };
+        dup2(output, STDOUT_FILENO);
+    }
+
+    // close all other pipes
+    for (auto&& j : pipes)
+    {
+        int input{ j.first };
+        close(input);
+        int output{ j.second };
+        close(output);
+    }
+};
+
 void eshell::execute_single(parsed_input& p) noexcept
 {
     // only one input for no separator case
@@ -161,33 +187,6 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
     // spawn children
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        // lambda function to set pipes
-        auto set_pipes = [&]() constexpr noexcept -> void
-        {
-            // set input, if applicable
-            if (i > 0)
-            {
-                int input{ pipes[i - 1].first };
-                dup2(input, STDIN_FILENO);
-            }
-
-            // set output, if applicable
-            if (i < p.num_inputs - 1)
-            {
-                int output{ pipes[i].second };
-                dup2(output, STDOUT_FILENO);
-            }
-
-            // close all other pipes
-            for (int j{ 0 }; j < p.num_inputs - 1; ++j)
-            {
-                int input{ pipes[j].first };
-                close(input);
-                int output{ pipes[j].second };
-                close(output);
-            }
-        };
-
         switch (p.inputs[i].type)
         {
             case INPUT_TYPE_NON:
@@ -197,22 +196,18 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                assert(false &&
-                       "TODO: INPUT_TYPE_SUBSHELL in execute_pipeline");
-                /*
                 auto new_children{ fork_and_pipe_subshell(
-                  p.inputs[i].data.subshell, set_pipes) };
+                  p.inputs[i].data.subshell, set_pipes, pipes, i) };
                 for (auto&& i : new_children)
                 {
                     children.emplace_back(i);
                 }
-                */
                 break;
             }
             case INPUT_TYPE_COMMAND:
             {
                 children.emplace_back(
-                  fork_and_pipe(p.inputs[i].data.cmd, set_pipes));
+                  fork_and_pipe(p.inputs[i].data.cmd, set_pipes, pipes, i));
                 break;
             }
             case INPUT_TYPE_PIPELINE:
@@ -337,7 +332,10 @@ pid_t eshell::fork_command(command& c) noexcept
     return child;
 }
 
-pid_t eshell::fork_and_pipe(command& c, auto&& set_pipe) noexcept
+pid_t eshell::fork_and_pipe(command& c,
+                            auto&& set_pipe,
+                            const std::vector<fd>& pipes,
+                            int i) noexcept
 {
     // NOLINTNEXTLINE (*-avoid-c-arrays)
     auto argv{ c.args };
@@ -345,7 +343,7 @@ pid_t eshell::fork_and_pipe(command& c, auto&& set_pipe) noexcept
     pid_t child{ fork() };
     if (child == 0) // child
     {
-        set_pipe();
+        set_pipe(pipes, i);
         // NOLINTNEXTLINE (*-pointer-arithmetic)
         execvp(argv[0], argv);
     }
@@ -369,22 +367,75 @@ std::vector<pid_t> eshell::fork_subshell(char* sh) noexcept
         {
             assert(p.num_inputs == 1);
             assert(p.inputs[0].type == INPUT_TYPE_COMMAND);
-            execvp(p.inputs[0].data.cmd.args[0], p.inputs[0].data.cmd.args);
+            children.emplace_back(fork());
+            if (children.back() == 0)
+            {
+                execvp(p.inputs[0].data.cmd.args[0], p.inputs[0].data.cmd.args);
+            }
             break;
         }
         case SEPARATOR_PIPE:
         {
-            execute_pipeline(p);
+            assert(false && "fork_subshell SEPARATOR_PIPE not implemented");
             break;
         }
         case SEPARATOR_SEQ:
         {
-            execute_sequential(p);
+            assert(false && "fork_subshell SEPARATOR_SEQ not implemented");
             break;
         }
         case SEPARATOR_PARA:
         {
-            assert(false && "execute_subshell SEPARATOR_PARA not implemented");
+            assert(false && "fork_subshell SEPARATOR_PARA not implemented");
+            break;
+        }
+    }
+    return children;
+}
+
+std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
+                                                  auto&& set_pipe,
+                                                  const std::vector<fd>& pipes,
+                                                  int i) noexcept
+{
+    parsed_input p;
+    if (parse_line(sh, &p) == 0)
+    {
+        assert(false && "Parse error in execute_subshell");
+    }
+    // pretty_print(&p);
+    std::vector<pid_t> children;
+    SEPARATOR sep{ p.separator };
+    switch (sep)
+    {
+        case SEPARATOR_NONE:
+        {
+            assert(p.num_inputs == 1);
+            assert(p.inputs[0].type == INPUT_TYPE_COMMAND);
+            children.emplace_back(fork());
+            if (children.back() == 0)
+            {
+                set_pipe(pipes, i);
+                execvp(p.inputs[0].data.cmd.args[0], p.inputs[0].data.cmd.args);
+            }
+            break;
+        }
+        case SEPARATOR_PIPE:
+        {
+            assert(false &&
+                   "fork_and_pipe_subshell SEPARATOR_PIPE not implemented");
+            break;
+        }
+        case SEPARATOR_SEQ:
+        {
+            assert(false &&
+                   "fork_and_pipe_subshell SEPARATOR_SEQ not implemented");
+            break;
+        }
+        case SEPARATOR_PARA:
+        {
+            assert(false &&
+                   "fork_and_pipe_subshell SEPARATOR_PARA not implemented");
             break;
         }
     }

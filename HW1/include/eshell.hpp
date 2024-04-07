@@ -29,6 +29,7 @@ class eshell
         static bool process_input(std::optional<parsed_input>) noexcept;
         static bool is_quit(char*) noexcept;
         static std::pair<int, int> create_pipe() noexcept;
+        static void set_pipes(const std::vector<fd>&, int) noexcept;
 
         static void execute_single(parsed_input&) noexcept;
         static void execute_pipeline(parsed_input&) noexcept;
@@ -36,7 +37,14 @@ class eshell
         static void execute_parallel(parsed_input&) noexcept;
 
         static pid_t fork_command(command&) noexcept;
-        static pid_t fork_and_pipe(command&, auto&&) noexcept;
+        static pid_t fork_and_pipe(command&,
+                                   auto&&,
+                                   const std::vector<fd>&,
+                                   int) noexcept;
         static std::vector<pid_t> fork_subshell(char*) noexcept;
+        static std::vector<pid_t> fork_and_pipe_subshell(char*,
+                                                         auto&&,
+                                                         const std::vector<fd>&,
+                                                         int) noexcept;
         static std::vector<pid_t> fork_pipeline(pipeline&) noexcept;
 };
