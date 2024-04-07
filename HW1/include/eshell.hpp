@@ -31,6 +31,8 @@ class eshell
         static pid_t execute_command(const command&) noexcept;
         static bool is_quit(char*) noexcept;
         static std::pair<int, int> create_pipe() noexcept;
+        static void execute_single(const parsed_input&) noexcept;
+        static void execute_subshell(char[INPUT_BUFFER_SIZE]) noexcept;
         static void execute_pipeline(const parsed_input&) noexcept;
         static std::vector<pid_t> execute_pipeline(const pipeline&) noexcept;
         static void execute_sequential(const parsed_input&) noexcept;
