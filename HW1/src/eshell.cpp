@@ -114,42 +114,6 @@ eshell::fd eshell::create_pipe() noexcept
 
 void eshell::execute_pipeline(const parsed_input& p) noexcept
 {
-    /*
-    assert(p.num_inputs > 0);
-    auto pipe = create_pipe();
-    if (fork() == 0)
-    {
-        close(pipe.first);
-        dup2(pipe.second, STDOUT_FILENO);
-        close(pipe.second);
-        // NOLINTNEXTLINE (*-array-to-pointer-decay)
-        auto argv{ p.inputs[0].data.cmd.args };
-        // NOLINTNEXTLINE (*-pointer-arithmetic)
-        execvp(argv[0], argv);
-    }
-    else
-    {
-        if (fork() == 0)
-        {
-            close(pipe.second);
-            dup2(pipe.first, STDIN_FILENO);
-            close(pipe.first);
-            // NOLINTNEXTLINE (*-array-to-pointer-decay)
-            auto argv{ p.inputs[1].data.cmd.args };
-            // NOLINTNEXTLINE (*-pointer-arithmetic)
-            execvp(argv[0], argv);
-        }
-        else
-        {
-            close(pipe.first);
-            close(pipe.second);
-            wait(nullptr);
-            wait(nullptr);
-        }
-    }
-    */
-
-    assert(p.num_inputs > 0);
     std::vector<pid_t> children(p.num_inputs);
     std::vector<fd> pipes(p.num_inputs - 1);
 
