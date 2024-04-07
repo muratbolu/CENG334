@@ -36,6 +36,7 @@ class eshell
         static void execute_parallel(parsed_input&) noexcept;
 
         static pid_t fork_command(command&) noexcept;
+        static pid_t fork_and_pipe(command&, auto&&) noexcept;
         static std::vector<pid_t> fork_subshell(char*) noexcept;
         static std::vector<pid_t> fork_pipeline(pipeline&) noexcept;
 };

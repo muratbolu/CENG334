@@ -145,7 +145,6 @@ void eshell::execute_single(parsed_input& p) noexcept
     }
 }
 
-// TODO: no fork in parsed_input& argument functions!
 void eshell::execute_pipeline(parsed_input& p) noexcept
 {
     assert(p.separator == SEPARATOR_PIPE);
@@ -162,8 +161,8 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
     // spawn children
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        children.emplace_back(fork());
-        if (children.back() == 0) // child
+        // lambda function to set pipes
+        auto set_pipes = [&]() constexpr noexcept -> void
         {
             // set input, if applicable
             if (i > 0)
@@ -187,59 +186,32 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
                 int output{ pipes[j].second };
                 close(output);
             }
+        };
 
-            // This is the really complex part
-            switch (p.inputs[i].type)
+        switch (p.inputs[i].type)
+        {
+            case INPUT_TYPE_NON:
             {
-                case INPUT_TYPE_NON:
-                {
-                    assert(false &&
-                           "No INPUT_TYPE_NON in top_level_pipeline_member");
-                    break;
-                }
-                case INPUT_TYPE_SUBSHELL:
-                {
-                    assert(false && "TODO");
-                    /*
-                    parsed_input p;
-                    if (parse_line(s.data.subshell, &p) == 0)
-                    {
-                        assert(false && "Parse error in
-                    top_level_pipeline_member");
-                    }
-                    pretty_print(&p);
-                    switch (p.separator)
-                    {
-                        case SEPARATOR_NONE:
-                            execute_single(p);
-                            break;
-                        case SEPARATOR_PIPE:
-                            execute_pipeline(p);
-                            break;
-                        case SEPARATOR_SEQ:
-                            execute_sequential(p);
-                            break;
-                        case SEPARATOR_PARA:
-                            // assert(false && "execute_subshell
-                    SEPARATOR_PARA not
-                            // implemented");
-                            break;
-                    }
-                    */
-                }
-                case INPUT_TYPE_COMMAND:
-                {
-                    // should be no fork here!
-                    execvp(p.inputs[i].data.cmd.args[0],
-                           p.inputs[i].data.cmd.args);
-                    break;
-                }
-                case INPUT_TYPE_PIPELINE:
-                {
-                    assert(false && "No INPUT_TYPE_PIPELINE in "
-                                    "top_level_pipeline_member");
-                    break;
-                }
+                assert(false && "No INPUT_TYPE_NON in execute_pipeline");
+                break;
+            }
+            case INPUT_TYPE_SUBSHELL:
+            {
+                std::cerr << "INPUT_TYPE_SUBSHELL in execute_pipeline"
+                          << std::endl;
+                // set_pipes();
+                break;
+            }
+            case INPUT_TYPE_COMMAND:
+            {
+                children.emplace_back(
+                  fork_and_pipe(p.inputs[i].data.cmd, set_pipes));
+                break;
+            }
+            case INPUT_TYPE_PIPELINE:
+            {
+                assert(false && "No INPUT_TYPE_PIPELINE in execute_pipeline");
+                break;
             }
         }
     }
@@ -345,6 +317,22 @@ pid_t eshell::fork_command(command& c) noexcept
     pid_t child{ fork() };
     if (child == 0) // child
     {
+        // NOLINTNEXTLINE (*-pointer-arithmetic)
+        execvp(argv[0], argv);
+    }
+    // parent
+    return child;
+}
+
+pid_t eshell::fork_and_pipe(command& c, auto&& set_pipe) noexcept
+{
+    // NOLINTNEXTLINE (*-avoid-c-arrays)
+    auto argv{ c.args };
+    assert(argv != nullptr);
+    pid_t child{ fork() };
+    if (child == 0) // child
+    {
+        set_pipe();
         // NOLINTNEXTLINE (*-pointer-arithmetic)
         execvp(argv[0], argv);
     }
