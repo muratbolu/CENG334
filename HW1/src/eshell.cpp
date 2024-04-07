@@ -69,26 +69,38 @@ bool eshell::process_input(std::optional<parsed_input> p_opt) noexcept
             break;
 
         case SEPARATOR_PIPE:
+        {
             assert(p.num_inputs > 0);
-            execute_pipeline(p);
+            auto new_children{ execute_pipeline(p) };
+            for (auto&& i : new_children)
+            {
+                waitpid(i, nullptr, 0);
+            }
             break;
+        }
         case SEPARATOR_SEQ:
+        {
             assert(p.num_inputs > 0);
             execute_sequential(p);
             break;
+        }
         case SEPARATOR_PARA:
+        {
             assert(p.num_inputs > 0);
             execute_parallel(p);
             break;
+        }
         default:
+        {
             assert(false && "Separator default case unreachable");
             break;
+        }
     }
     free_parsed_input(&p);
     return return_val;
 }
 
-pid_t eshell::execute_command(const command& c) noexcept
+pid_t eshell::execute_command(command& c) noexcept
 {
     // NOLINTNEXTLINE (*-avoid-c-arrays)
     auto argv{ c.args };
@@ -118,7 +130,7 @@ eshell::fd eshell::create_pipe() noexcept
     return std::make_pair(fd[0], fd[1]);
 }
 
-void eshell::execute_single(const parsed_input& p) noexcept
+void eshell::execute_single(parsed_input& p) noexcept
 {
     // only one input for no separator case
     assert(p.num_inputs == 1);
@@ -126,21 +138,33 @@ void eshell::execute_single(const parsed_input& p) noexcept
     switch (input.type)
     {
         case INPUT_TYPE_NON:
+        {
             assert(false && "No INPUT_TYPE_NON in execute_single");
             break;
+        }
         case INPUT_TYPE_SUBSHELL:
-            execute_subshell(input.data.subshell);
+        {
+            auto new_children{ execute_subshell(input.data.subshell) };
+            for (auto&& i : new_children)
+            {
+                waitpid(i, nullptr, 0);
+            }
             break;
+        }
         case INPUT_TYPE_COMMAND:
+        {
             waitpid(execute_command(input.data.cmd), nullptr, 0);
             break;
+        }
         case INPUT_TYPE_PIPELINE:
+        {
             assert(false && "No INPUT_TYPE_PIPELINE in execute_single");
             break;
+        }
     }
 }
 
-void eshell::execute_subshell(char sh[INPUT_BUFFER_SIZE]) noexcept
+std::vector<pid_t> eshell::execute_subshell(char* sh) noexcept
 {
     parsed_input p;
     if (parse_line(sh, &p) == 0)
@@ -148,28 +172,43 @@ void eshell::execute_subshell(char sh[INPUT_BUFFER_SIZE]) noexcept
         assert(false && "Parse error in execute_subshell");
     }
     // pretty_print(&p);
+    std::vector<pid_t> children;
     SEPARATOR sep{ p.separator };
     switch (sep)
     {
         case SEPARATOR_NONE:
+        {
             execute_single(p);
             break;
+        }
         case SEPARATOR_PIPE:
-            execute_pipeline(p);
+        {
+            auto new_children{ execute_pipeline(p) };
+            for (auto&& i : new_children)
+            {
+                children.emplace_back(i);
+            }
             break;
+        }
         case SEPARATOR_SEQ:
+        {
             execute_sequential(p);
             break;
+        }
         case SEPARATOR_PARA:
-            // assert(false && "execute_subshell SEPARATOR_PARA not
-            // implemented");
+        {
+            assert(false && "execute_subshell SEPARATOR_PARA not implemented");
             break;
+        }
     }
+    return children;
 }
 
-void eshell::execute_pipeline(const parsed_input& p) noexcept
+std::vector<pid_t> eshell::execute_pipeline(parsed_input& p) noexcept
 {
-    std::vector<pid_t> children(p.num_inputs);
+    assert(p.separator == SEPARATOR_PIPE);
+
+    std::vector<pid_t> children;
     std::vector<fd> pipes(p.num_inputs - 1);
 
     // initialize all pipes
@@ -181,8 +220,8 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
     // spawn children
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        children[i] = fork();
-        if (children[i] == 0) // child
+        children.emplace_back(fork());
+        if (children.back() == 0) // child
         {
             // set input, if applicable
             if (i > 0)
@@ -207,12 +246,64 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
                 close(output);
             }
 
-            // execute command
-            // NOLINTNEXTLINE (*-array-to-pointer-decay)
-            // TODO: switch
-            auto argv{ p.inputs[i].data.cmd.args };
-            // NOLINTNEXTLINE (*-pointer-arithmetic)
-            execvp(argv[0], argv);
+            // This is the really complex part
+            std::vector<pid_t> new_children;
+            switch (p.inputs[i].type)
+            {
+                case INPUT_TYPE_NON:
+                {
+                    assert(false &&
+                           "No INPUT_TYPE_NON in top_level_pipeline_member");
+                    break;
+                }
+                case INPUT_TYPE_SUBSHELL:
+                {
+                    assert(false && "TODO");
+                    /*
+                    parsed_input p;
+                    if (parse_line(s.data.subshell, &p) == 0)
+                    {
+                        assert(false && "Parse error in
+                    top_level_pipeline_member");
+                    }
+                    pretty_print(&p);
+                    switch (p.separator)
+                    {
+                        case SEPARATOR_NONE:
+                            execute_single(p);
+                            break;
+                        case SEPARATOR_PIPE:
+                            execute_pipeline(p);
+                            break;
+                        case SEPARATOR_SEQ:
+                            execute_sequential(p);
+                            break;
+                        case SEPARATOR_PARA:
+                            // assert(false && "execute_subshell
+                    SEPARATOR_PARA not
+                            // implemented");
+                            break;
+                    }
+                    */
+                }
+                case INPUT_TYPE_COMMAND:
+                {
+                    // should be no fork here!
+                    execvp(p.inputs[i].data.cmd.args[0],
+                           p.inputs[i].data.cmd.args);
+                    break;
+                }
+                case INPUT_TYPE_PIPELINE:
+                {
+                    assert(false && "No INPUT_TYPE_PIPELINE in "
+                                    "top_level_pipeline_member");
+                    break;
+                }
+            }
+            for (auto&& c : new_children)
+            {
+                children.emplace_back(c);
+            }
         }
     }
     for (int i{ 0 }; i < p.num_inputs - 1; ++i)
@@ -220,15 +311,12 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
         close(pipes[i].first);
         close(pipes[i].second);
     }
-    for (auto&& i : children)
-    {
-        waitpid(i, nullptr, 0);
-    }
+    return children;
 }
 
-std::vector<pid_t> eshell::execute_pipeline(const pipeline& p) noexcept
+std::vector<pid_t> eshell::execute_pipeline(pipeline& p) noexcept
 {
-    std::vector<pid_t> children(p.num_commands);
+    std::vector<pid_t> children;
     std::vector<fd> pipes(p.num_commands - 1);
 
     // initialize all pipes
@@ -240,8 +328,8 @@ std::vector<pid_t> eshell::execute_pipeline(const pipeline& p) noexcept
     // spawn children
     for (int i{ 0 }; i < p.num_commands; ++i)
     {
-        children[i] = fork();
-        if (children[i] == 0) // child
+        children.emplace_back(fork());
+        if (children.back() == 0) // child
         {
             // set input, if applicable
             if (i > 0)
@@ -265,12 +353,7 @@ std::vector<pid_t> eshell::execute_pipeline(const pipeline& p) noexcept
                 int output{ pipes[j].second };
                 close(output);
             }
-
-            // execute command
-            // NOLINTNEXTLINE (*-array-to-pointer-decay)
-            auto argv{ p.commands[i].args };
-            // NOLINTNEXTLINE (*-pointer-arithmetic)
-            execvp(argv[0], argv);
+            execvp(p.commands[i].args[0], p.commands[i].args);
         }
     }
     for (int i{ 0 }; i < p.num_commands - 1; ++i)
@@ -281,7 +364,7 @@ std::vector<pid_t> eshell::execute_pipeline(const pipeline& p) noexcept
     return children;
 }
 
-void eshell::execute_sequential(const parsed_input& p) noexcept
+void eshell::execute_sequential(parsed_input& p) noexcept
 {
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
@@ -289,22 +372,38 @@ void eshell::execute_sequential(const parsed_input& p) noexcept
         switch (input.type)
         {
             case INPUT_TYPE_NON:
-                std::cerr << "not implemented";
+            {
+                assert(false && "No INPUT_TYPE_NON in execute_sequential");
                 break;
+            }
             case INPUT_TYPE_SUBSHELL:
-                std::cerr << "not implemented";
+            {
+                auto new_children{ execute_subshell(input.data.subshell) };
+                for (auto&& i : new_children)
+                {
+                    waitpid(i, nullptr, 0);
+                }
                 break;
+            }
             case INPUT_TYPE_COMMAND:
+            {
                 waitpid(execute_command(input.data.cmd), nullptr, 0);
                 break;
+            }
             case INPUT_TYPE_PIPELINE:
-                execute_pipeline(input.data.pline);
+            {
+                auto new_children{ execute_pipeline(input.data.pline) };
+                for (auto&& i : new_children)
+                {
+                    waitpid(i, nullptr, 0);
+                }
                 break;
+            }
         }
     }
 }
 
-void eshell::execute_parallel(const parsed_input& p) noexcept
+void eshell::execute_parallel(parsed_input& p) noexcept
 {
     std::vector<pid_t> children;
     for (int i{ 0 }; i < p.num_inputs; ++i)
@@ -313,21 +412,33 @@ void eshell::execute_parallel(const parsed_input& p) noexcept
         switch (input.type)
         {
             case INPUT_TYPE_NON:
-                std::cerr << "not implemented";
+            {
+                assert(false && "No INPUT_TYPE_NON in execute_parallel");
                 break;
+            }
             case INPUT_TYPE_SUBSHELL:
-                std::cerr << "not implemented";
-                break;
-            case INPUT_TYPE_COMMAND:
-                children.emplace_back(execute_command(input.data.cmd));
-                break;
-            case INPUT_TYPE_PIPELINE:
-                auto new_children{ execute_pipeline(input.data.pline) };
-                for (auto&& c : new_children)
+            {
+                auto new_children{ execute_subshell(input.data.subshell) };
+                for (auto&& i : new_children)
                 {
-                    children.emplace_back(c);
+                    children.emplace_back(i);
                 }
                 break;
+            }
+            case INPUT_TYPE_COMMAND:
+            {
+                children.emplace_back(execute_command(input.data.cmd));
+                break;
+            }
+            case INPUT_TYPE_PIPELINE:
+            {
+                auto new_children{ execute_pipeline(input.data.pline) };
+                for (auto&& i : new_children)
+                {
+                    children.emplace_back(i);
+                }
+                break;
+            }
         }
     }
     for (auto&& i : children)
