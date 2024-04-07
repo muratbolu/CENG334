@@ -197,9 +197,16 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                std::cerr << "INPUT_TYPE_SUBSHELL in execute_pipeline"
-                          << std::endl;
-                // set_pipes();
+                assert(false &&
+                       "TODO: INPUT_TYPE_SUBSHELL in execute_pipeline");
+                /*
+                auto new_children{ fork_and_pipe_subshell(
+                  p.inputs[i].data.subshell, set_pipes) };
+                for (auto&& i : new_children)
+                {
+                    children.emplace_back(i);
+                }
+                */
                 break;
             }
             case INPUT_TYPE_COMMAND:
@@ -240,11 +247,14 @@ void eshell::execute_sequential(parsed_input& p) noexcept
             }
             case INPUT_TYPE_SUBSHELL:
             {
+                assert(false && "No INPUT_TYPE_SUBSHELL in execute_sequential");
+                /*
                 auto new_children{ fork_subshell(input.data.subshell) };
                 for (auto&& i : new_children)
                 {
                     waitpid(i, nullptr, 0);
                 }
+                */
                 break;
             }
             case INPUT_TYPE_COMMAND:
@@ -280,11 +290,14 @@ void eshell::execute_parallel(parsed_input& p) noexcept
             }
             case INPUT_TYPE_SUBSHELL:
             {
+                assert(false && "No INPUT_TYPE_SUBSHELL in execute_parallel");
+                /*
                 auto new_children{ fork_subshell(input.data.subshell) };
                 for (auto&& i : new_children)
                 {
                     children.emplace_back(i);
                 }
+                */
                 break;
             }
             case INPUT_TYPE_COMMAND:
