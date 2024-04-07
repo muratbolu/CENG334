@@ -72,6 +72,7 @@ bool eshell::process_input(std::optional<parsed_input> p_opt) noexcept
             break;
         case SEPARATOR_SEQ:
             assert(p.num_inputs > 0);
+            execute_sequential(p);
             break;
         case SEPARATOR_PARA:
             assert(p.num_inputs > 0);
@@ -167,5 +168,14 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
         waitpid(children[i], nullptr, 0);
+    }
+}
+
+void eshell::execute_sequential(const parsed_input& p) noexcept
+{
+    for (int i{ 0 }; i < p.num_inputs; ++i)
+    {
+        // NOLINTNEXTLINE (*-array-to-pointer-decay)
+        waitpid(spawn(p.inputs[i].data.cmd.args), nullptr, 0);
     }
 }

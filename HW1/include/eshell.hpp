@@ -31,4 +31,5 @@ class eshell
         static bool is_quit(char*) noexcept;
         static std::pair<int, int> create_pipe() noexcept;
         static void execute_pipeline(const parsed_input&) noexcept;
+        static void execute_sequential(const parsed_input&) noexcept;
 };
