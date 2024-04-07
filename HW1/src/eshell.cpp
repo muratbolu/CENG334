@@ -63,7 +63,7 @@ bool eshell::process_input(std::optional<parsed_input> p_opt) noexcept
 
             assert(p.num_inputs > 0);
             // NOLINTNEXTLINE (*-array-to-pointer-decay)
-            waitpid(spawn(p.inputs[0].data.cmd.args), nullptr, 0);
+            waitpid(execute_command(p.inputs[0].data.cmd), nullptr, 0);
             break;
 
         case SEPARATOR_PIPE:
@@ -85,9 +85,10 @@ bool eshell::process_input(std::optional<parsed_input> p_opt) noexcept
     return return_val;
 }
 
-// NOLINTNEXTLINE (*-avoid-c-arrays)
-pid_t eshell::spawn(char* const argv[MAX_ARGS]) noexcept
+pid_t eshell::execute_command(const command& c) noexcept
 {
+    // NOLINTNEXTLINE (*-avoid-c-arrays)
+    auto argv{ c.args };
     assert(argv != nullptr);
     pid_t child{ fork() };
     if (child == 0) // child
@@ -166,31 +167,118 @@ void eshell::execute_pipeline(const parsed_input& p) noexcept
         close(pipes[i].first);
         close(pipes[i].second);
     }
-    for (int i{ 0 }; i < p.num_inputs; ++i)
+    for (auto&& i : children)
     {
-        waitpid(children[i], nullptr, 0);
+        waitpid(i, nullptr, 0);
     }
+}
+
+std::vector<pid_t> eshell::execute_pipeline(const pipeline& p) noexcept
+{
+    std::vector<pid_t> children(p.num_commands);
+    std::vector<fd> pipes(p.num_commands - 1);
+
+    // initialize all pipes
+    for (int i{ 0 }; i < p.num_commands - 1; ++i)
+    {
+        pipes[i] = create_pipe();
+    }
+
+    // spawn children
+    for (int i{ 0 }; i < p.num_commands; ++i)
+    {
+        children[i] = fork();
+        if (children[i] == 0) // child
+        {
+            // set input, if applicable
+            if (i > 0)
+            {
+                int input{ pipes[i - 1].first };
+                dup2(input, STDIN_FILENO);
+            }
+
+            // set output, if applicable
+            if (i < p.num_commands - 1)
+            {
+                int output{ pipes[i].second };
+                dup2(output, STDOUT_FILENO);
+            }
+
+            // close all other pipes
+            for (int j{ 0 }; j < p.num_commands - 1; ++j)
+            {
+                int input{ pipes[j].first };
+                close(input);
+                int output{ pipes[j].second };
+                close(output);
+            }
+
+            // execute command
+            // NOLINTNEXTLINE (*-array-to-pointer-decay)
+            auto argv{ p.commands[i].args };
+            // NOLINTNEXTLINE (*-pointer-arithmetic)
+            execvp(argv[0], argv);
+        }
+    }
+    for (int i{ 0 }; i < p.num_commands - 1; ++i)
+    {
+        close(pipes[i].first);
+        close(pipes[i].second);
+    }
+    return children;
 }
 
 void eshell::execute_sequential(const parsed_input& p) noexcept
 {
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        // NOLINTNEXTLINE (*-array-to-pointer-decay)
-        waitpid(spawn(p.inputs[i].data.cmd.args), nullptr, 0);
+        auto input{ p.inputs[i] };
+        switch (input.type)
+        {
+            case INPUT_TYPE_NON:
+                std::cerr << "not implemented";
+                break;
+            case INPUT_TYPE_SUBSHELL:
+                std::cerr << "not implemented";
+                break;
+            case INPUT_TYPE_COMMAND:
+                waitpid(execute_command(input.data.cmd), nullptr, 0);
+                break;
+            case INPUT_TYPE_PIPELINE:
+                execute_pipeline(input.data.pline);
+                break;
+        }
     }
 }
 
 void eshell::execute_parallel(const parsed_input& p) noexcept
 {
-    std::vector<pid_t> children(p.num_inputs);
+    std::vector<pid_t> children;
     for (int i{ 0 }; i < p.num_inputs; ++i)
     {
-        // NOLINTNEXTLINE (*-array-to-pointer-decay)
-        children[i] = spawn(p.inputs[i].data.cmd.args);
+        auto input{ p.inputs[i] };
+        switch (input.type)
+        {
+            case INPUT_TYPE_NON:
+                std::cerr << "not implemented";
+                break;
+            case INPUT_TYPE_SUBSHELL:
+                std::cerr << "not implemented";
+                break;
+            case INPUT_TYPE_COMMAND:
+                children.emplace_back(execute_command(input.data.cmd));
+                break;
+            case INPUT_TYPE_PIPELINE:
+                auto new_children{ execute_pipeline(input.data.pline) };
+                for (auto&& c : new_children)
+                {
+                    children.emplace_back(c);
+                }
+                break;
+        }
     }
-    for (int i{ 0 }; i < p.num_inputs; ++i)
+    for (auto&& i : children)
     {
-        waitpid(children[i], nullptr, 0);
+        waitpid(i, nullptr, 0);
     }
 }

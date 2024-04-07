@@ -6,6 +6,7 @@
 #include <optional>
 #include <sys/types.h>
 #include <utility>
+#include <vector>
 
 class eshell
 {
@@ -27,10 +28,11 @@ class eshell
         static std::optional<parsed_input> get_input() noexcept;
         static bool process_input(std::optional<parsed_input>) noexcept;
         // NOLINTNEXTLINE (*-avoid-c-arrays)
-        static pid_t spawn(char* const[MAX_ARGS]) noexcept;
+        static pid_t execute_command(const command&) noexcept;
         static bool is_quit(char*) noexcept;
         static std::pair<int, int> create_pipe() noexcept;
         static void execute_pipeline(const parsed_input&) noexcept;
+        static std::vector<pid_t> execute_pipeline(const pipeline&) noexcept;
         static void execute_sequential(const parsed_input&) noexcept;
         static void execute_parallel(const parsed_input&) noexcept;
 };
