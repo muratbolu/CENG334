@@ -542,6 +542,7 @@ void eshell::fork_and_pipe_subshell(char* sh,
 
             // create pipes
             assert(p.num_inputs > 0);
+            std::vector<pid_t> children;
             std::vector<fd> new_pipes(p.num_inputs - 1);
             for (int i{ 0 }; i < p.num_inputs - 1; ++i)
             {
@@ -550,8 +551,8 @@ void eshell::fork_and_pipe_subshell(char* sh,
             // fork children
             for (int i{ 0 }; i < p.num_inputs; ++i)
             {
-                pid_t f{ fork() };
-                if (f == 0) // child
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
                 {
                     if (i > 0)
                     {
@@ -583,21 +584,16 @@ void eshell::fork_and_pipe_subshell(char* sh,
                     // NOLINTNEXTLINE
                     execvp(argv[0], argv);
                 }
-                else
-                {
-                    waitpid(f, nullptr, 0);
-                }
             }
             // close all pipes in parent
-            for (auto&& i : pipes)
-            {
-                close(i.first);
-                close(i.second);
-            }
             for (auto&& i : new_pipes)
             {
                 close(i.first);
                 close(i.second);
+            }
+            for (auto&& i : children)
+            {
+                waitpid(i, nullptr, 0);
             }
             break;
         }
