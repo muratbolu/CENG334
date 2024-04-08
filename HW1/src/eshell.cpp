@@ -24,10 +24,12 @@ eshell::eshell() noexcept
         try
         {
             char* i{ get_input(str) };
-            if (!fork()) // NOLINT (child)
+            pid_t f{ fork() };
+            if (f == 0) // NOLINT (child)
             {
                 subshell(i);
             }
+            waitpid(f, nullptr, 0);
         }
         catch (const std::runtime_error&) // EOF, quit
         {
@@ -112,11 +114,13 @@ void eshell::execute_single(parsed_input& p) noexcept
         }
         case INPUT_TYPE_SUBSHELL:
         {
-            if (!fork()) // NOLINT (child)
+            pid_t f{ fork() };
+            if (f == 0) // NOLINT (child)
             {
                 // NOLINTNEXTLINE
                 subshell(input.data.subshell);
             }
+            waitpid(f, nullptr, 0);
             break;
         }
         case INPUT_TYPE_COMMAND:
@@ -132,6 +136,7 @@ void eshell::execute_single(parsed_input& p) noexcept
     }
 }
 
+// NOLINTNEXTLINE
 void eshell::execute_pipeline(parsed_input& p) noexcept
 {
     std::size_t num_inputs{ static_cast<std::size_t>(p.num_inputs) };
@@ -158,21 +163,24 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                assert(0 && "TODO: INPUT_TYPE_SUBSHELL in execute_pipeline");
-                // fork subshell
-                // establish pipes
-                // call subshell()
-                // fork_and_pipe_subshell(input.data.subshell, pipes, i);
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    set_pipes(pipes, i);
+                    // NOLINTNEXTLINE
+                    subshell(input.data.subshell);
+                }
                 break;
             }
             case INPUT_TYPE_COMMAND:
             {
-                assert(0 && "TODO: INPUT_TYPE_COMMAND in execute_pipeline");
-                // fork command
-                // establish pipes
-                // call execvp()
-                // children.emplace_back(
-                //  fork_and_pipe(input.data.cmd, pipes, i)); // NOLINT
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    set_pipes(pipes, i);
+                    // NOLINTNEXTLINE
+                    execute_command(input.data.cmd);
+                }
                 break;
             }
             case INPUT_TYPE_PIPELINE:
@@ -271,7 +279,6 @@ void eshell::execute_parallel(parsed_input& p) noexcept
 pid_t eshell::fork_command(command& c) noexcept
 {
     auto argv{ c.args }; // NOLINT
-    assert(argv != nullptr);
     pid_t child{ fork() };
     if (child == 0) // child
     {
@@ -285,6 +292,12 @@ void eshell::wait_command(command& c) noexcept
 {
     waitpid(fork_command(c), nullptr, 0);
 }
+
+[[noreturn]] void eshell::execute_command(command& c) noexcept
+{
+    auto argv{ c.args };   // NOLINT
+    execvp(argv[0], argv); // NOLINT
+} // NOLINT
 
 std::vector<pid_t> eshell::fork_pipeline(const pipeline& p) noexcept
 {
@@ -305,29 +318,7 @@ std::vector<pid_t> eshell::fork_pipeline(const pipeline& p) noexcept
         children.emplace_back(fork());
         if (children.back() == 0) // child
         {
-            // set input, if applicable
-            if (i > 0)
-            {
-                int input{ pipes[i - 1].first };
-                dup2(input, STDIN_FILENO);
-            }
-
-            // set output, if applicable
-            if (i < pipes.size())
-            {
-                int output{ pipes[i].second };
-                dup2(output, STDOUT_FILENO);
-            }
-
-            // close all other pipes
-            for (auto&& j : pipes)
-            {
-                int input{ j.first };
-                close(input);
-                int output{ j.second };
-                close(output);
-            }
-
+            set_pipes(pipes, i);
             // NOLINTNEXTLINE
             execvp(p.commands[i].args[0], p.commands[i].args);
         }
@@ -345,6 +336,32 @@ eshell::fd eshell::create_pipe() noexcept
     std::array<int, 2> fd;
     pipe(fd.data());
     return std::make_pair(fd[0], fd[1]);
+}
+
+void eshell::set_pipes(const std::vector<fd>& pipes, std::size_t i) noexcept
+{
+    // set input, if applicable
+    if (i > 0)
+    {
+        int inp{ pipes[i - 1].first };
+        dup2(inp, STDIN_FILENO);
+    }
+
+    // set output, if applicable
+    if (i < pipes.size())
+    {
+        int out{ pipes[i].second };
+        dup2(out, STDOUT_FILENO);
+    }
+
+    // close all other pipes
+    for (auto&& j : pipes)
+    {
+        int inp{ j.first };
+        close(inp);
+        int out{ j.second };
+        close(out);
+    }
 }
 
 /*
@@ -552,8 +569,8 @@ void eshell::fork_and_pipe_subshell(char* sh,
         case SEPARATOR_PIPE:
         {
             // get input and output pipes
-            auto input{ STDIN_FILENO };
-            auto output{ STDOUT_FILENO };
+            int input{ STDIN_FILENO };
+            int output{ STDOUT_FILENO };
             if (j > 0)
             {
                 input = pipes[j - 1].first;
