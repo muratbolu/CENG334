@@ -619,15 +619,13 @@ void eshell::fork_and_pipe_subshell(char* sh,
                     }
                     case INPUT_TYPE_COMMAND:
                     {
-                        waitpid(fork_and_pipe(p.inputs[i].data.cmd, pipes, j),
-                                nullptr,
-                                0);
+                        waitpid(fork_command(p.inputs[i].data.cmd), nullptr, 0);
                         break;
                     }
                     case INPUT_TYPE_PIPELINE:
                     {
-                        auto new_children{ fork_and_pipeline(
-                          p.inputs[i].data.pline, pipes, j) };
+                        auto new_children{ fork_pipeline(
+                          p.inputs[i].data.pline) };
                         for (auto&& i : new_children)
                         {
                             waitpid(i, nullptr, 0);
