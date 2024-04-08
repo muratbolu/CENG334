@@ -517,8 +517,75 @@ std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
         }
         case SEPARATOR_PIPE:
         {
-            assert(false &&
-                   "fork_and_pipe_subshell SEPARATOR_PIPE not implemented");
+            // TODO
+
+            // get input and output pipes
+            auto input{ STDIN_FILENO };
+            auto output{ STDOUT_FILENO };
+            if (i > 0)
+            {
+                input = pipes[i - 1].first;
+            }
+            if (i < pipes.size())
+            {
+                output = pipes[i].second;
+            }
+
+            // create pipes
+            assert(p.num_inputs > 0);
+            std::vector<fd> new_pipes(p.num_inputs - 1);
+            for (int i{ 0 }; i < p.num_inputs - 1; ++i)
+            {
+                new_pipes[i] = create_pipe();
+            }
+            // fork children
+            for (int i{ 0 }; i < p.num_inputs; ++i)
+            {
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    if (i > 0)
+                    {
+                        input = new_pipes[i - 1].first;
+                    }
+                    if (i < new_pipes.size())
+                    {
+                        output = new_pipes[i].second;
+                    }
+                    dup2(input, STDIN_FILENO);
+                    dup2(output, STDOUT_FILENO);
+                    for (auto&& j : pipes)
+                    {
+                        int input{ j.first };
+                        close(input);
+                        int output{ j.second };
+                        close(output);
+                    }
+                    for (auto&& j : new_pipes)
+                    {
+                        int input{ j.first };
+                        close(input);
+                        int output{ j.second };
+                        close(output);
+                    }
+                    assert(p.inputs[i].type == INPUT_TYPE_COMMAND);
+                    // NOLINTNEXTLINE
+                    auto* argv{ p.inputs[i].data.cmd.args };
+                    // NOLINTNEXTLINE
+                    execvp(argv[0], argv);
+                }
+            }
+            // close all pipes in parent
+            for (auto&& i : pipes)
+            {
+                close(i.first);
+                close(i.second);
+            }
+            for (auto&& i : new_pipes)
+            {
+                close(i.first);
+                close(i.second);
+            }
             break;
         }
         case SEPARATOR_SEQ:
