@@ -588,8 +588,13 @@ std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
         }
         case SEPARATOR_SEQ:
         {
-            assert(false &&
-                   "fork_and_pipe_subshell SEPARATOR_SEQ not implemented");
+            assert(p.num_inputs > 0);
+            for (int i{ 0 }; i < p.num_inputs; ++i)
+            {
+                assert(p.inputs[i].type == INPUT_TYPE_COMMAND);
+                waitpid(
+                  fork_and_pipe(p.inputs[i].data.cmd, pipes, i), nullptr, 0);
+            }
             break;
         }
         case SEPARATOR_PARA:
