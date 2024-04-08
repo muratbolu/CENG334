@@ -517,8 +517,6 @@ std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
         }
         case SEPARATOR_PIPE:
         {
-            // TODO
-
             // get input and output pipes
             auto input{ STDIN_FILENO };
             auto output{ STDOUT_FILENO };
