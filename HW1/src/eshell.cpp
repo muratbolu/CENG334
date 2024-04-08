@@ -1,7 +1,11 @@
 #include "eshell.hpp"
 #include "parser.h"
 
+#include <array>
 #include <cassert>
+#include <climits>
+#include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <optional>
@@ -136,6 +140,61 @@ void eshell::set_pipes(const std::vector<fd>& pipes, int i) noexcept
     }
 };
 
+void eshell::set_repeater_pipes(const std::vector<fd>& pipes, int i) noexcept
+{
+    // set input
+    int input{ pipes[i].first };
+    dup2(input, STDIN_FILENO);
+
+    // output as STDOUT
+
+    // close all other pipes
+    for (auto&& j : pipes)
+    {
+        int input{ j.first };
+        close(input);
+        int output{ j.second };
+        close(output);
+    }
+}
+
+[[noreturn]] void eshell::repeater_procedure(std::vector<fd> pipes) noexcept
+{
+    // input as STDIN
+    ssize_t n{ 0 };
+    std::array<char, INPUT_BUFFER_SIZE> buffer;
+    while (((n = read(STDIN_FILENO, buffer.data(), INPUT_BUFFER_SIZE)) != 0) &&
+           (!pipes.empty()))
+    {
+        // output to all pipes
+        for (std::size_t i{ 0 }; i < pipes.size();)
+        {
+            if (write(pipes[i].second, buffer.data(), n) == 0)
+            {
+                int input{ pipes[i].first };
+                close(input);
+                int output{ pipes[i].second };
+                close(output);
+                pipes.erase(pipes.begin() +
+                            static_cast<int>(i)); // delete i^th element
+                // continue without incrementing i
+            }
+            else
+            {
+                ++i;
+            }
+        }
+    }
+    for (auto&& j : pipes)
+    {
+        int input{ j.first };
+        close(input);
+        int output{ j.second };
+        close(output);
+    }
+    exit(EXIT_SUCCESS);
+}
+
 void eshell::execute_single(parsed_input& p) noexcept
 {
     // only one input for no separator case
@@ -197,7 +256,7 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             case INPUT_TYPE_SUBSHELL:
             {
                 auto new_children{ fork_and_pipe_subshell(
-                  p.inputs[i].data.subshell, set_pipes, pipes, i) }; // NOLINT
+                  p.inputs[i].data.subshell, pipes, i) }; // NOLINT
                 for (auto&& i : new_children)
                 {
                     children.emplace_back(i);
@@ -206,8 +265,8 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             }
             case INPUT_TYPE_COMMAND:
             {
-                children.emplace_back(fork_and_pipe(
-                  p.inputs[i].data.cmd, set_pipes, pipes, i)); // NOLINT
+                children.emplace_back(
+                  fork_and_pipe(p.inputs[i].data.cmd, pipes, i)); // NOLINT
                 break;
             }
             case INPUT_TYPE_PIPELINE:
@@ -331,7 +390,6 @@ pid_t eshell::fork_command(command& c) noexcept
 }
 
 pid_t eshell::fork_and_pipe(command& c,
-                            auto&& set_pipe,
                             const std::vector<fd>& pipes,
                             int i) noexcept
 {
@@ -340,7 +398,7 @@ pid_t eshell::fork_and_pipe(command& c,
     pid_t child{ fork() };
     if (child == 0) // child
     {
-        set_pipe(pipes, i);
+        set_pipes(pipes, i);
         execvp(argv[0], argv); // NOLINT
     }
     // parent
@@ -373,17 +431,57 @@ std::vector<pid_t> eshell::fork_subshell(char* sh) noexcept
         }
         case SEPARATOR_PIPE:
         {
-            assert(false && "fork_subshell SEPARATOR_PIPE not implemented");
+            auto new_children{ fork_pipeline(create_pipeline(p)) };
+            for (auto&& i : new_children)
+            {
+                children.emplace_back(i);
+            }
             break;
         }
         case SEPARATOR_SEQ:
         {
-            assert(false && "fork_subshell SEPARATOR_SEQ not implemented");
+            for (int i{ 0 }; i < p.num_inputs; ++i)
+            {
+                assert(p.inputs[i].type == INPUT_TYPE_COMMAND);
+                waitpid(fork_command(p.inputs[i].data.cmd), nullptr, 0);
+            }
             break;
         }
         case SEPARATOR_PARA:
         {
-            assert(false && "fork_subshell SEPARATOR_PARA not implemented");
+            // create pipes
+            std::vector<fd> pipes(p.num_inputs);
+            for (int i{ 0 }; i < p.num_inputs; ++i)
+            {
+                pipes[i] = create_pipe();
+            }
+            // fork children
+            for (int i{ 0 }; i < p.num_inputs; ++i)
+            {
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    set_repeater_pipes(pipes, i);
+                    assert(p.inputs[i].type == INPUT_TYPE_COMMAND);
+                    // NOLINTNEXTLINE
+                    auto* argv{ p.inputs[i].data.cmd.args };
+                    // NOLINTNEXTLINE
+                    execvp(argv[0], argv);
+                }
+            }
+            // fork repeater
+            children.emplace_back(fork());
+            if (children.back() == 0) // repeater
+            {
+                repeater_procedure(pipes);
+            }
+
+            // close all pipes in parent
+            for (auto&& i : pipes)
+            {
+                close(i.first);
+                close(i.second);
+            }
             break;
         }
     }
@@ -391,7 +489,6 @@ std::vector<pid_t> eshell::fork_subshell(char* sh) noexcept
 }
 
 std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
-                                                  auto&& set_pipe,
                                                   const std::vector<fd>& pipes,
                                                   int i) noexcept
 {
@@ -412,7 +509,7 @@ std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
             children.emplace_back(fork());
             if (children.back() == 0)
             {
-                set_pipe(pipes, i);
+                set_pipes(pipes, i);
                 // NOLINTNEXTLINE
                 execvp(p.inputs[0].data.cmd.args[0], p.inputs[0].data.cmd.args);
             }
@@ -440,7 +537,7 @@ std::vector<pid_t> eshell::fork_and_pipe_subshell(char* sh,
     return children;
 }
 
-std::vector<pid_t> eshell::fork_pipeline(pipeline& p) noexcept
+std::vector<pid_t> eshell::fork_pipeline(const pipeline& p) noexcept
 {
     std::vector<pid_t> children;
     std::vector<fd> pipes(p.num_commands - 1);
@@ -457,28 +554,7 @@ std::vector<pid_t> eshell::fork_pipeline(pipeline& p) noexcept
         children.emplace_back(fork());
         if (children.back() == 0) // child
         {
-            // set input, if applicable
-            if (i > 0)
-            {
-                int input{ pipes[i - 1].first };
-                dup2(input, STDIN_FILENO);
-            }
-
-            // set output, if applicable
-            if (i < p.num_commands - 1)
-            {
-                int output{ pipes[i].second };
-                dup2(output, STDOUT_FILENO);
-            }
-
-            // close all other pipes
-            for (int j{ 0 }; j < p.num_commands - 1; ++j)
-            {
-                int input{ pipes[j].first };
-                close(input);
-                int output{ pipes[j].second };
-                close(output);
-            }
+            set_pipes(pipes, i);
             // NOLINTNEXTLINE
             execvp(p.commands[i].args[0], p.commands[i].args);
         }
@@ -489,4 +565,27 @@ std::vector<pid_t> eshell::fork_pipeline(pipeline& p) noexcept
         close(pipes[i].second);
     }
     return children;
+}
+
+/*
+std::vector<pid_t> eshell::fork_and_pipeline(pipeline& p,
+                                             const std::vector<fd>& pipes,
+                                             int i) noexcept
+{
+    ;
+}
+*/
+
+pipeline eshell::create_pipeline(const parsed_input& p) noexcept
+{
+    assert(p.separator == SEPARATOR_PIPE);
+    pipeline result;
+    result.num_commands = p.num_inputs;
+    assert(result.num_commands < MAX_INPUTS);
+    for (int i{ 0 }; i < result.num_commands; ++i)
+    {
+        assert(p.inputs[i].type == INPUT_TYPE_COMMAND);
+        result.commands[i] = p.inputs[i].data.cmd;
+    }
+    return result;
 }
