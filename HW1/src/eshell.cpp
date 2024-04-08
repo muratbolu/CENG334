@@ -508,7 +508,7 @@ std::vector<pid_t> eshell::fork_subshell(char* sh) noexcept
 
 void eshell::fork_and_pipe_subshell(char* sh,
                                     const std::vector<fd>& pipes,
-                                    int i) noexcept
+                                    int j) noexcept
 {
     parsed_input p;
     if (parse_line(sh, &p) == 0)
@@ -523,7 +523,7 @@ void eshell::fork_and_pipe_subshell(char* sh,
         {
             assert(p.num_inputs == 1);
             assert(p.inputs[0].type == INPUT_TYPE_COMMAND);
-            waitpid(fork_and_pipe(p.inputs[0].data.cmd, pipes, i), nullptr, 0);
+            waitpid(fork_and_pipe(p.inputs[0].data.cmd, pipes, j), nullptr, 0);
             break;
         }
         case SEPARATOR_PIPE:
@@ -531,13 +531,13 @@ void eshell::fork_and_pipe_subshell(char* sh,
             // get input and output pipes
             auto input{ STDIN_FILENO };
             auto output{ STDOUT_FILENO };
-            if (i > 0)
+            if (j > 0)
             {
-                input = pipes[i - 1].first;
+                input = pipes[j - 1].first;
             }
-            if (i < pipes.size())
+            if (j < pipes.size())
             {
-                output = pipes[i].second;
+                output = pipes[j].second;
             }
 
             // create pipes
@@ -623,7 +623,7 @@ void eshell::fork_and_pipe_subshell(char* sh,
                     }
                     case INPUT_TYPE_COMMAND:
                     {
-                        waitpid(fork_and_pipe(p.inputs[i].data.cmd, pipes, i),
+                        waitpid(fork_and_pipe(p.inputs[i].data.cmd, pipes, j),
                                 nullptr,
                                 0);
                         break;
@@ -631,7 +631,7 @@ void eshell::fork_and_pipe_subshell(char* sh,
                     case INPUT_TYPE_PIPELINE:
                     {
                         auto new_children{ fork_and_pipeline(
-                          p.inputs[i].data.pline, pipes, i) };
+                          p.inputs[i].data.pline, pipes, j) };
                         for (auto&& i : new_children)
                         {
                             waitpid(i, nullptr, 0);
