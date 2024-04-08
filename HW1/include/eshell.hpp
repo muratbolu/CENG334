@@ -43,15 +43,13 @@ class eshell
                                    const std::vector<fd>&,
                                    int) noexcept;
         static std::vector<pid_t> fork_subshell(char*) noexcept;
-        static std::vector<pid_t> fork_and_pipe_subshell(char*,
-                                                         const std::vector<fd>&,
-                                                         int) noexcept;
+        static void fork_and_pipe_subshell(char*,
+                                           const std::vector<fd>&,
+                                           int) noexcept;
         static std::vector<pid_t> fork_pipeline(const pipeline&) noexcept;
-        /*
         static std::vector<pid_t> fork_and_pipeline(pipeline&,
                                                     const std::vector<fd>&,
                                                     int) noexcept;
-        */
 
         static pipeline create_pipeline(const parsed_input&) noexcept;
 };
