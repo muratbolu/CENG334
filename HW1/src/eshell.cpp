@@ -27,7 +27,7 @@ eshell::eshell() noexcept
             pid_t f{ fork() };
             if (f == 0) // NOLINT (child)
             {
-                subshell(i);
+                subshell(i, true);
             }
             waitpid(f, nullptr, 0);
         }
@@ -57,7 +57,7 @@ char* eshell::get_input(std::string& str)
 }
 
 // NOLINTNEXTLINE(*-no-recursion)
-[[noreturn]] void eshell::subshell(char* sh)
+[[noreturn]] void eshell::subshell(char* sh, bool is_toplevel)
 {
     parsed_input p;
     if (parse_line(sh, &p) == 0)
@@ -93,7 +93,15 @@ char* eshell::get_input(std::string& str)
         {
             // at least one input
             assert(p.num_inputs > 0);
-            execute_parallel(p);
+            // if the subshell is not top level, it needs repeater
+            if (is_toplevel)
+            {
+                execute_parallel(p);
+            }
+            else
+            {
+                execute_parallel_with_repeater(p);
+            }
             break;
         }
     }
@@ -276,6 +284,92 @@ void eshell::execute_parallel(parsed_input& p) noexcept
     }
 }
 
+// TODO
+void eshell::execute_parallel_with_repeater(parsed_input& p) noexcept
+{
+    std::size_t num_inputs{ static_cast<std::size_t>(p.num_inputs) };
+    std::vector<pid_t> children;
+    std::size_t num_pipes{ static_cast<std::size_t>(p.num_inputs) };
+    std::vector<fd> pipes(num_pipes);
+
+    // initialize all pipes
+    for (std::size_t i{ 0 }; i < num_pipes; ++i)
+    {
+        pipes[i] = create_pipe();
+    }
+
+    // spawn children
+    for (std::size_t i{ 0 }; i < num_inputs; ++i)
+    {
+        single_input input{ p.inputs[i] }; // NOLINT
+        switch (input.type)
+        {
+            case INPUT_TYPE_NON:
+            {
+                assert(0 && "No INPUT_TYPE_NON in e_p_w_r");
+                break;
+            }
+            case INPUT_TYPE_SUBSHELL:
+            {
+                assert(0 && "No INPUT_TYPE_SUBSHELL in e_p_w_r");
+                break;
+            }
+            case INPUT_TYPE_COMMAND:
+            {
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    set_repeater_pipes(pipes, i);
+                    // NOLINTNEXTLINE
+                    execute_command(input.data.cmd);
+                }
+                break;
+            }
+            case INPUT_TYPE_PIPELINE:
+            {
+                // TODO
+                assert(0 && "TODO");
+                /*
+                children.emplace_back(fork());
+                if (children.back() == 0) // child
+                {
+                    set_repeater_pipes(pipes, i);
+                    // NOLINTNEXTLINE
+                    execute_command(input.data.cmd);
+                }
+                break;
+
+                auto new_children{ fork_pipeline(input.data.pline) };
+                for (auto&& c : new_children)
+                {
+                    children.emplace_back(c);
+                }
+                break;
+                */
+            }
+        }
+    }
+
+    // fork repeater
+    children.emplace_back(fork());
+    if (children.back() == 0) // repeater
+    {
+        repeater_procedure(pipes);
+    }
+
+    // close all pipes in parent
+    for (auto&& i : pipes)
+    {
+        close(i.first);
+        close(i.second);
+    }
+
+    for (auto&& c : children)
+    {
+        waitpid(c, nullptr, 0);
+    }
+}
+
 pid_t eshell::fork_command(command& c) noexcept
 {
     auto argv{ c.args }; // NOLINT
@@ -364,25 +458,24 @@ void eshell::set_pipes(const std::vector<fd>& pipes, std::size_t i) noexcept
     }
 }
 
-/*
-void eshell::set_repeater_pipes(const std::vector<fd>& pipes, int i) noexcept
+void eshell::set_repeater_pipes(const std::vector<fd>& pipes,
+                                std::size_t i) noexcept
 {
     // set input
-    int input{ pipes[i].first };
-    dup2(input, STDIN_FILENO);
+    int inp{ pipes[i].first };
+    dup2(inp, STDIN_FILENO);
 
-    // output as STDOUT
+    // do not set output
 
     // close all other pipes
     for (auto&& j : pipes)
     {
-        int input{ j.first };
-        close(input);
-        int output{ j.second };
-        close(output);
+        int in{ j.first };
+        close(in);
+        int out{ j.second };
+        close(out);
     }
 }
-*/
 
 [[noreturn]] void eshell::repeater_procedure(std::vector<fd> pipes) noexcept
 {
