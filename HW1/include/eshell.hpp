@@ -42,19 +42,4 @@ class eshell
         static void set_repeater_pipes(const std::vector<fd>&,
                                        std::size_t) noexcept;
         [[noreturn]] static void repeater_procedure(std::vector<fd>) noexcept;
-
-        /*
-        static pid_t fork_and_pipe(command&,
-                                   const std::vector<fd>&,
-                                   int) noexcept;
-        static std::vector<pid_t> fork_subshell(char*) noexcept;
-        static void fork_and_pipe_subshell(char*,
-                                           const std::vector<fd>&,
-                                           int) noexcept;
-        static std::vector<pid_t> fork_and_pipeline(pipeline&,
-                                                    const std::vector<fd>&,
-                                                    int) noexcept;
-
-        static pipeline create_pipeline(const parsed_input&) noexcept;
-        */
 };
