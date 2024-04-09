@@ -479,7 +479,10 @@ std::vector<pid_t> eshell::fork_pipeline_for_repeater(
 eshell::fd eshell::create_pipe() noexcept
 {
     std::array<int, 2> fd;
-    pipe(fd.data());
+    if (pipe(fd.data()) != 0)
+    {
+        exit(EXIT_FAILURE);
+    }
     return std::make_pair(fd[0], fd[1]);
 }
 
