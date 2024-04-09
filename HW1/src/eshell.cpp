@@ -379,7 +379,8 @@ void eshell::wait_command(command& c) noexcept
 {
     auto argv{ c.args };   // NOLINT
     execvp(argv[0], argv); // NOLINT
-} // NOLINT
+    exit(EXIT_FAILURE);    // NOLINT
+}
 
 std::vector<pid_t> eshell::fork_pipeline(const pipeline& p) noexcept
 {
