@@ -31,6 +31,7 @@ class eshell
         static pid_t fork_command(command&) noexcept;
         static void wait_command(command&) noexcept;
         [[noreturn]] static void execute_command(command&) noexcept;
+
         static std::vector<pid_t> fork_pipeline(const pipeline&) noexcept;
         static std::vector<pid_t> fork_pipeline_for_repeater(
           const pipeline&,
