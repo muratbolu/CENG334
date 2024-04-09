@@ -328,24 +328,13 @@ void eshell::execute_parallel_with_repeater(parsed_input& p) noexcept
             case INPUT_TYPE_PIPELINE:
             {
                 // TODO
-                assert(0 && "TODO");
-                /*
-                children.emplace_back(fork());
-                if (children.back() == 0) // child
-                {
-                    set_repeater_pipes(pipes, i);
-                    // NOLINTNEXTLINE
-                    execute_command(input.data.cmd);
-                }
-                break;
-
-                auto new_children{ fork_pipeline(input.data.pline) };
+                auto new_children{ fork_pipeline_for_repeater(
+                  input.data.pline, pipes, i) };
                 for (auto&& c : new_children)
                 {
                     children.emplace_back(c);
                 }
                 break;
-                */
             }
         }
     }
@@ -418,6 +407,68 @@ std::vector<pid_t> eshell::fork_pipeline(const pipeline& p) noexcept
         }
     }
     for (auto&& s : pipes)
+    {
+        close(s.first);
+        close(s.second);
+    }
+    return children;
+}
+
+std::vector<pid_t> eshell::fork_pipeline_for_repeater(
+  const pipeline& p,
+  const std::vector<fd>& repeater_pipes,
+  std::size_t repeater_index) noexcept
+{
+    assert(p.num_commands > 1);
+
+    std::size_t num_commands{ static_cast<std::size_t>(p.num_commands) };
+    std::vector<pid_t> children;
+    std::size_t num_pipes{ static_cast<std::size_t>(p.num_commands - 1) };
+    std::vector<fd> new_pipes(num_pipes);
+
+    // initialize all pipes
+    for (std::size_t j{ 0 }; j < num_pipes; ++j)
+    {
+        new_pipes[j] = create_pipe();
+    }
+
+    // spawn children
+    // j == 0
+    {
+        children.emplace_back(fork());
+        if (children.back() == 0) // child
+        {
+            // set input to repeater, close repeater_pipes
+            set_repeater_pipes(repeater_pipes, repeater_index);
+
+            // set output to new_pipes
+            int output{ new_pipes[0].second };
+            dup2(output, STDOUT_FILENO);
+
+            // close new_pipes
+            for (auto&& j : new_pipes)
+            {
+                int inp{ j.first };
+                close(inp);
+                int out{ j.second };
+                close(out);
+            }
+
+            // NOLINTNEXTLINE
+            execvp(p.commands[0].args[0], p.commands[0].args);
+        }
+    }
+    for (std::size_t j{ 1 }; j < num_commands; ++j)
+    {
+        children.emplace_back(fork());
+        if (children.back() == 0) // child
+        {
+            set_pipes(new_pipes, j);
+            // NOLINTNEXTLINE
+            execvp(p.commands[j].args[0], p.commands[j].args);
+        }
+    }
+    for (auto&& s : new_pipes)
     {
         close(s.first);
         close(s.second);
