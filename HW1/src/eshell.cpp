@@ -2,7 +2,6 @@
 #include "parser.h"
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -70,7 +69,7 @@ char* eshell::get_input(std::string& str)
         case SEPARATOR_NONE:
         {
             // only one input for no separator case
-            assert(p.num_inputs == 1);
+            // assert(p.num_inputs == 1);
             // either single command or subshell
             execute_single(p);
             break;
@@ -78,21 +77,21 @@ char* eshell::get_input(std::string& str)
         case SEPARATOR_PIPE:
         {
             // at least one input
-            assert(p.num_inputs > 0);
+            // assert(p.num_inputs > 0);
             execute_pipeline(p);
             break;
         }
         case SEPARATOR_SEQ:
         {
             // at least one input
-            assert(p.num_inputs > 0);
+            // assert(p.num_inputs > 0);
             execute_sequential(p);
             break;
         }
         case SEPARATOR_PARA:
         {
             // at least one input
-            assert(p.num_inputs > 0);
+            // assert(p.num_inputs > 0);
             // if the subshell is not top level, it needs repeater
             if (is_toplevel)
             {
@@ -117,7 +116,7 @@ void eshell::execute_single(parsed_input& p) noexcept
     {
         case INPUT_TYPE_NON:
         {
-            assert(false && "No INPUT_TYPE_NON in execute_single");
+            // assert(false && "No INPUT_TYPE_NON in ex_sing");
             break;
         }
         case INPUT_TYPE_SUBSHELL:
@@ -138,7 +137,7 @@ void eshell::execute_single(parsed_input& p) noexcept
         }
         case INPUT_TYPE_PIPELINE:
         {
-            assert(false && "No INPUT_TYPE_PIPELINE in execute_single");
+            // assert(false && "No INPUT_TYPE_PIPELINE in ex_sing");
             break;
         }
     }
@@ -166,7 +165,7 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
         {
             case INPUT_TYPE_NON:
             {
-                assert(false && "No INPUT_TYPE_NON in execute_pipeline");
+                // assert(false && "No INPUT_TYPE_NON in ex_pl");
                 break;
             }
             case INPUT_TYPE_SUBSHELL:
@@ -193,7 +192,7 @@ void eshell::execute_pipeline(parsed_input& p) noexcept
             }
             case INPUT_TYPE_PIPELINE:
             {
-                assert(false && "No INPUT_TYPE_PIPELINE in execute_pipeline");
+                // assert(false && "No INPUT_TYPE_PIPELINE in ex_pl");
                 break;
             }
         }
@@ -218,12 +217,12 @@ void eshell::execute_sequential(parsed_input& p) noexcept
         {
             case INPUT_TYPE_NON:
             {
-                assert(false && "No INPUT_TYPE_NON in execute_sequential");
+                // assert(false && "No INPUT_TYPE_NON in ex_seq");
                 break;
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                assert(false && "No INPUT_TYPE_SUBSHELL in execute_sequential");
+                // assert(false && "No INPUT_TYPE_SUBSHELL in ex_seq");
                 break;
             }
             case INPUT_TYPE_COMMAND:
@@ -254,12 +253,12 @@ void eshell::execute_parallel(parsed_input& p) noexcept
         {
             case INPUT_TYPE_NON:
             {
-                assert(false && "No INPUT_TYPE_NON in execute_parallel");
+                // assert(false && "No INPUT_TYPE_NON in ex_para");
                 break;
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                assert(false && "No INPUT_TYPE_SUBSHELL in execute_parallel");
+                // assert(false && "No INPUT_TYPE_SUBSHELL in ex_para");
                 break;
             }
             case INPUT_TYPE_COMMAND:
@@ -306,12 +305,12 @@ void eshell::execute_parallel_with_repeater(parsed_input& p) noexcept
         {
             case INPUT_TYPE_NON:
             {
-                assert(0 && "No INPUT_TYPE_NON in e_p_w_r");
+                // assert(false && "No INPUT_TYPE_NON in e_p_w_r");
                 break;
             }
             case INPUT_TYPE_SUBSHELL:
             {
-                assert(0 && "No INPUT_TYPE_SUBSHELL in e_p_w_r");
+                // assert(false && "No INPUT_TYPE_SUBSHELL in e_p_w_r");
                 break;
             }
             case INPUT_TYPE_COMMAND:
@@ -419,7 +418,7 @@ std::vector<pid_t> eshell::fork_pipeline_for_repeater(
   const std::vector<fd>& repeater_pipes,
   std::size_t repeater_index) noexcept
 {
-    assert(p.num_commands > 1);
+    // assert(p.num_commands > 1);
 
     std::size_t num_commands{ static_cast<std::size_t>(p.num_commands) };
     std::vector<pid_t> children;
