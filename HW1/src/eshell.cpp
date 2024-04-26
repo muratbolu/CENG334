@@ -44,7 +44,7 @@ eshell::eshell() noexcept
 char* eshell::get_input(std::string& str)
 {
     std::getline(std::cin, str);
-    if (std::cin.eof() && str.empty())
+    if (!std::cin && str.empty())
     {
         throw std::runtime_error{ "EOF" };
     }
