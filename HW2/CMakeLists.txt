@@ -7,8 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
+    src/helper.c
     src/WriteOutput.c
     src/main.cpp
+    src/simulator.cpp
 )
 
 add_executable (${PROJECT_NAME} ${SOURCES})
