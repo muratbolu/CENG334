@@ -18,7 +18,7 @@ public:
                 pthread_cond_init(&cond, NULL) ; 
         }
         void wait() {  pthread_cond_wait(&cond, &owner->mut);}
-        void timedwait(struct timespec *abstime) { pthread_cond_timedwait(&cond, &owner->mut, abstime); }
+        int timedwait(struct timespec *abstime) { return pthread_cond_timedwait(&cond, &owner->mut, abstime); }
         void notify() { pthread_cond_signal(&cond);}
         void notifyAll() { pthread_cond_broadcast(&cond);}
     };

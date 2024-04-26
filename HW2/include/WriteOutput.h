@@ -2,6 +2,7 @@
 #define HOMEWORK2_WRITEOUTPUT_H
 
 #include <stdio.h>
+
 #include <pthread.h>
 #include <sys/time.h>
 
@@ -27,6 +28,7 @@ void PrintThreadId();
  * @param connectorID
  * @param action
  */
+void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Action action);
 void WriteOutput(int carID, char connector_type, int connectorID, Action action);
 #ifdef __cplusplus
 }
