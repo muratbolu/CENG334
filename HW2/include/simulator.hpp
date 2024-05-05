@@ -6,8 +6,8 @@
 
 class Simulator
 {
-    public:
-        Simulator();
+   public:
+    Simulator();
 
-    private:
+   private:
 };
