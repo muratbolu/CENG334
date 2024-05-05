@@ -1,8 +1,10 @@
 #pragma once
 
-#include "WriteOutput.h"
-#include "helper.h"
-#include "monitor.h"
+#include <cstdint>
+#include <string>
+#include <tuple>
+#include <variant>
+#include <vector>
 
 class Simulator
 {
@@ -10,4 +12,41 @@ class Simulator
     Simulator();
 
    private:
+    using u8 = std::uint8_t;
+    using u32 = std::uint32_t;
+
+    struct NarrowBridge
+    {
+        u32 travel_time;
+        u32 maximum_wait_time;
+    };
+    std::vector<NarrowBridge> narrow_bridges;
+
+    struct Ferry
+    {
+        u32 travel_time;
+        u32 maximum_wait_time;
+        u32 capacity;
+    };
+    std::vector<Ferry> ferries;
+
+    struct Crossroad
+    {
+        u32 travel_time;
+        u32 maximum_wait_time;
+    };
+    std::vector<Crossroad> crossroads;
+
+    struct Car
+    {
+        u32 travel_time;
+        using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
+        using path_object = std::tuple<connector_ptr, u8, u8>;
+        std::vector<path_object> path;
+        void get_path() noexcept;
+        connector_ptr to_connector(std::string&&) noexcept;
+    };
+    std::vector<Car> cars;
+
+    void parse_input() noexcept;
 };
