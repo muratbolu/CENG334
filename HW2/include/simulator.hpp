@@ -43,8 +43,10 @@ class Simulator
         using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
         using path_object = std::tuple<connector_ptr, u8, u8>;
         std::vector<path_object> path;
-        void get_path() noexcept;
-        connector_ptr to_connector(std::string&&) noexcept;
+        void get_path(Simulator*) noexcept;
+        [[nodiscard]] connector_ptr static to_connector(
+          Simulator*,
+          const std::string&) noexcept;
     };
     std::vector<Car> cars;
 
