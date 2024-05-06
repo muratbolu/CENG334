@@ -9,11 +9,21 @@
 class Simulator
 {
    public:
-    Simulator();
+    Simulator() = default;
+    ~Simulator() = default;
+
+    Simulator(const Simulator&) = delete;
+    Simulator(Simulator&&) = delete;
+    Simulator& operator=(const Simulator&) = delete;
+    Simulator&& operator=(Simulator&&) = delete;
+
+    void run() noexcept;
 
    private:
     using u8 = std::uint8_t;
     using u32 = std::uint32_t;
+
+    void parse_input() noexcept;
 
     struct NarrowBridge
     {
@@ -39,16 +49,17 @@ class Simulator
 
     struct Car
     {
-        u32 travel_time;
         using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
         using path_object = std::tuple<connector_ptr, u8, u8>;
+
+        Simulator* sim;
+        u32 travel_time;
         std::vector<path_object> path;
-        void get_path(Simulator*) noexcept;
-        [[nodiscard]] connector_ptr static to_connector(
-          Simulator*,
-          const std::string&) noexcept;
+
+        void get_path() noexcept;
+        [[nodiscard]] connector_ptr constexpr to_connector(
+          const std::string&) const noexcept;
+        [[nodiscard]] u32 static constexpr to_uint(const char&) noexcept;
     };
     std::vector<Car> cars;
-
-    void parse_input() noexcept;
 };

@@ -3,13 +3,10 @@
 #include "WriteOutput.h"
 
 #include <cassert>
-#include <cstddef>
-#include <cstdlib>
 #include <iostream>
 #include <string>
-#include <utility>
 
-Simulator::Simulator()
+void Simulator::run() noexcept
 {
     parse_input();
     InitWriteOutput();
@@ -40,12 +37,13 @@ void Simulator::parse_input() noexcept
     cars.resize(temp);
     for (auto& c : cars)
     {
+        c.sim = this;
         std::cin >> c.travel_time;
-        c.get_path(this);
+        c.get_path();
     }
 }
 
-void Simulator::Car::get_path(Simulator* s) noexcept
+void Simulator::Car::get_path() noexcept
 {
     u32 path_length;
     std::cin >> path_length;
@@ -54,34 +52,36 @@ void Simulator::Car::get_path(Simulator* s) noexcept
     {
         std::string connector_str;
         std::cin >> connector_str >> std::get<1>(p) >> std::get<2>(p);
-        std::get<0>(p) = to_connector(s, connector_str);
+        std::get<0>(p) = to_connector(connector_str);
     }
 }
 
-[[nodiscard]] Simulator::Car::connector_ptr Simulator::Car::to_connector(
-  Simulator* s,
-  const std::string& str) noexcept
+[[nodiscard]] Simulator::Car::connector_ptr constexpr Simulator::Car::
+  to_connector(const std::string& str) const noexcept
 {
     switch (str[0])
     {
         case 'N':
         {
-            return static_cast<NarrowBridge*>(
-              &s->narrow_bridges[static_cast<std::size_t>(str[1] - '0')]);
+            return &sim->narrow_bridges[to_uint(str[1])];
         }
         case 'F':
         {
-            return static_cast<Ferry*>(
-              &s->ferries[static_cast<std::size_t>(str[1] - '0')]);
+            return &sim->ferries[to_uint(str[1])];
         }
         case 'C':
         {
-            return static_cast<Crossroad*>(
-              &s->crossroads[static_cast<std::size_t>(str[1] - '0')]);
+            return &sim->crossroads[to_uint(str[1])];
         }
         default:
         {
             assert(0 && "unreachable");
         }
     }
+}
+
+[[nodiscard]] Simulator::u32 constexpr Simulator::Car::to_uint(
+  const char& c) noexcept
+{
+    return static_cast<u32>(c - '0');
 }

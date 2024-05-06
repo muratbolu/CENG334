@@ -2,6 +2,7 @@
 
 int main()
 {
-    Simulator{};
+    Simulator s;
+    s.run();
     return 0;
 }
