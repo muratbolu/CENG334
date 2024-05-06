@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <string>
-#include <tuple>
 #include <variant>
 #include <vector>
 
@@ -57,8 +56,8 @@ class Simulator
         struct Destination
         {
             connector_ptr connector_type;
-            u8 from;
-            u8 to;
+            u32 from;
+            u32 to;
         };
         std::vector<Destination> path;
 
