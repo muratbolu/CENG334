@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <monitor.h>
 #include <pthread.h>
 #include <string>
 #include <variant>
@@ -27,14 +28,14 @@ class Simulator
     void create_car_threads() noexcept;
     void join_car_threads() const noexcept;
 
-    struct NarrowBridge
+    struct NarrowBridge : public Monitor
     {
         u32 travel_time;
         u32 maximum_wait_time;
     };
     std::vector<NarrowBridge> narrow_bridges;
 
-    struct Ferry
+    struct Ferry : public Monitor
     {
         u32 travel_time;
         u32 maximum_wait_time;
@@ -42,7 +43,7 @@ class Simulator
     };
     std::vector<Ferry> ferries;
 
-    struct Crossroad
+    struct Crossroad : public Monitor
     {
         u32 travel_time;
         u32 maximum_wait_time;
