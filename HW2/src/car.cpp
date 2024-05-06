@@ -20,7 +20,8 @@ void* Car::car_routine(void* arg)
     Car& car{ *static_cast<Car*>(arg) };
     for (std::size_t i{ 0 }; i < car.path.size(); ++i)
     {
-        auto output = [i, p = car.path[i]](auto&& e)
+        auto p{ car.path[i] };
+        auto output = [i, p](auto&& e)
         {
             return WriteOutput(static_cast<int>(i),
                                to_connector(p.connector_type),
@@ -31,7 +32,23 @@ void* Car::car_routine(void* arg)
         output(TRAVEL);
         sleep_milli(car.travel_time);
         output(ARRIVE);
-        // TODO: pass
+        auto* ct{ &p.connector_type };
+        if (auto** v = std::get_if<NarrowBridge*>(ct))
+        {
+            (*v)->pass(car, p.from);
+        }
+        else if (auto** v = std::get_if<Ferry*>(ct))
+        {
+            (*v)->pass(car, p.from);
+        }
+        else if (auto** v = std::get_if<Crossroad*>(ct))
+        {
+            (*v)->pass(car, p.from);
+        }
+        else
+        {
+            assert(0 && "unreachable");
+        }
     }
     pthread_exit(nullptr);
 }

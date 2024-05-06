@@ -3,6 +3,8 @@
 #include "monitor.h"
 #include <cstdint>
 
+class Car;
+
 class NarrowBridge : public Monitor
 {
    public:
@@ -10,6 +12,8 @@ class NarrowBridge : public Monitor
 
     i32 travel_time;
     i32 maximum_wait_time;
+
     Condition cv1;
     NarrowBridge() noexcept;
+    void pass(const Car&, i32) noexcept;
 };
