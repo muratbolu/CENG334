@@ -13,19 +13,19 @@ class Crossroad;
 class Car
 {
    public:
-    using u8 = std::uint8_t;
-    using u32 = std::uint32_t;
+    using i32 = std::int32_t;
 
     using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
 
     Simulator* sim;
-    u32 travel_time;
+    i32 travel_time;
 
     struct Destination
     {
         connector_ptr connector_type;
-        u32 from;
-        u32 to;
+        i32 connector_id;
+        i32 from;
+        i32 to;
     };
     std::vector<Destination> path;
 
@@ -35,5 +35,7 @@ class Car
     void get_path() noexcept;
     [[nodiscard]] connector_ptr constexpr to_connector(
       const std::string&) const noexcept;
-    [[nodiscard]] u32 static constexpr to_uint(const char&) noexcept;
+    [[nodiscard]] char static constexpr to_connector(
+      const connector_ptr& v) noexcept;
+    [[nodiscard]] i32 static constexpr to_uint(const char&) noexcept;
 };
