@@ -11,6 +11,10 @@ set(SOURCES
     src/WriteOutput.c
     src/main.cpp
     src/simulator.cpp
+    src/narrow_bridge.cpp
+    src/ferry.cpp
+    src/crossroad.cpp
+    src/car.cpp
 )
 
 add_executable (${PROJECT_NAME} ${SOURCES})
