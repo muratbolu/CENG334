@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <pthread.h>
 #include <string>
 #include <variant>
 #include <vector>
@@ -23,6 +24,8 @@ class Simulator
     using u32 = std::uint32_t;
 
     void parse_input() noexcept;
+    void create_car_threads() noexcept;
+    void join_car_threads() const noexcept;
 
     struct NarrowBridge
     {
@@ -61,10 +64,14 @@ class Simulator
         };
         std::vector<Destination> path;
 
+        // Do not mark noexcept!
+        static void* car_routine(void*);
+
         void get_path() noexcept;
         [[nodiscard]] connector_ptr constexpr to_connector(
           const std::string&) const noexcept;
         [[nodiscard]] u32 static constexpr to_uint(const char&) noexcept;
     };
     std::vector<Car> cars;
+    std::vector<pthread_t> car_threads;
 };
