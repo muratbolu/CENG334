@@ -38,14 +38,14 @@ void* Car::car_routine(void* arg)
 
 void Car::get_path() noexcept
 {
-    i32 path_length;
+    u32 path_length;
     std::cin >> path_length;
     path.resize(path_length);
     for (auto& p : path)
     {
         std::string connector_str;
         std::cin >> connector_str >> p.from >> p.to;
-        p.connector_id = to_uint(connector_str[1]);
+        p.connector_id = to_int(connector_str[1]);
         p.connector_type = to_connector(connector_str);
     }
 }
@@ -92,7 +92,12 @@ void Car::get_path() noexcept
     assert(0 && "unreachable");
 }
 
-[[nodiscard]] Car::i32 constexpr Car::to_uint(const char& c) noexcept
+[[nodiscard]] Car::i32 constexpr Car::to_int(const char& c) noexcept
 {
     return static_cast<i32>(c - '0');
+}
+
+[[nodiscard]] Car::u32 constexpr Car::to_uint(const char& c) noexcept
+{
+    return static_cast<u32>(c - '0');
 }

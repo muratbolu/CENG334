@@ -1,19 +1,19 @@
 #pragma once
 
-#include "car.hpp"
-#include "crossroad.hpp"
-#include "ferry.hpp"
-#include "narrow_bridge.hpp"
-
 #include <cstdint>
 #include <pthread.h>
 #include <vector>
 
+class NarrowBridge;
+class Ferry;
+class Crossroad;
+class Car;
+
 class Simulator
 {
    public:
-    Simulator() = default;
-    ~Simulator() = default;
+    Simulator() noexcept;
+    ~Simulator() noexcept;
 
     Simulator(const Simulator&) = delete;
     Simulator(Simulator&&) = delete;

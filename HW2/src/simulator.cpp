@@ -11,6 +11,9 @@
 #include <iostream>
 #include <pthread.h>
 
+Simulator::Simulator() noexcept = default;
+Simulator::~Simulator() noexcept = default;
+
 void Simulator::run() noexcept
 {
     InitWriteOutput();

@@ -14,6 +14,7 @@ class Car
 {
    public:
     using i32 = std::int32_t;
+    using u32 = std::uint32_t;
 
     using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
 
@@ -37,5 +38,6 @@ class Car
       const std::string&) const noexcept;
     [[nodiscard]] char static constexpr to_connector(
       const connector_ptr& v) noexcept;
-    [[nodiscard]] i32 static constexpr to_uint(const char&) noexcept;
+    [[nodiscard]] i32 static constexpr to_int(const char&) noexcept;
+    [[nodiscard]] u32 static constexpr to_uint(const char&) noexcept;
 };
