@@ -50,11 +50,17 @@ class Simulator
     struct Car
     {
         using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
-        using path_object = std::tuple<connector_ptr, u8, u8>;
 
         Simulator* sim;
         u32 travel_time;
-        std::vector<path_object> path;
+
+        struct Destination
+        {
+            connector_ptr connector_type;
+            u8 from;
+            u8 to;
+        };
+        std::vector<Destination> path;
 
         void get_path() noexcept;
         [[nodiscard]] connector_ptr constexpr to_connector(

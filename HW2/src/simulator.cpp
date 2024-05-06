@@ -51,8 +51,8 @@ void Simulator::Car::get_path() noexcept
     for (auto& p : path)
     {
         std::string connector_str;
-        std::cin >> connector_str >> std::get<1>(p) >> std::get<2>(p);
-        std::get<0>(p) = to_connector(connector_str);
+        std::cin >> connector_str >> p.from >> p.to;
+        p.connector_type = to_connector(connector_str);
     }
 }
 
