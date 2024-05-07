@@ -2,12 +2,11 @@
 
 #include "monitor.h"
 
-NarrowBridge::NarrowBridge() noexcept
-    : cv1{ this }
-{
-}
-
 void NarrowBridge::pass(const Car& car, i32 from) noexcept
 {
-    __synchronized__
+    __synchronized__;
+    if (curr_dir == from)
+    {
+        ;
+    }
 }
