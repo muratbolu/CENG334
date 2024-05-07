@@ -1,11 +1,13 @@
 #include "ferry.hpp"
 
+#include "monitor.h"
+
 Ferry::Ferry() noexcept
-    : cv1(this)
+    : cv1{ this }
 {
 }
 
-void Ferry::pass(const Car&, i32) noexcept
+void Ferry::pass(const Car& car, i32 from) noexcept
 {
-    ;
+    __synchronized__
 }
