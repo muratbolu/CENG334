@@ -7,10 +7,10 @@
 #include "narrow_bridge.hpp"
 #include "simulator.hpp"
 
-#include "pthread.h"
 #include <cassert>
 #include <cstddef>
 #include <iostream>
+#include <pthread.h>
 #include <string>
 #include <variant>
 
@@ -24,7 +24,7 @@ void* Car::car_routine(void* arg)
         auto output = [i, p](auto&& e)
         {
             return WriteOutput(static_cast<int>(i),
-                               to_connector(p.connector_type),
+                               connector_to_char(p.connector_type),
                                p.connector_id,
                                std::forward<decltype(e)>(e));
         };
@@ -33,17 +33,17 @@ void* Car::car_routine(void* arg)
         sleep_milli(car.travel_time);
         output(ARRIVE);
         auto* ct{ &p.connector_type };
-        if (auto** v = std::get_if<NarrowBridge*>(ct))
+        if (auto** nb = std::get_if<NarrowBridge*>(ct))
         {
-            (*v)->pass(car, p.from);
+            (*nb)->pass(car, p.from);
         }
-        else if (auto** v = std::get_if<Ferry*>(ct))
+        else if (auto** f = std::get_if<Ferry*>(ct))
         {
-            (*v)->pass(car, p.from);
+            (*f)->pass(car, p.from);
         }
-        else if (auto** v = std::get_if<Crossroad*>(ct))
+        else if (auto** cr = std::get_if<Crossroad*>(ct))
         {
-            (*v)->pass(car, p.from);
+            (*cr)->pass(car, p.from);
         }
         else
         {
@@ -91,18 +91,18 @@ void Car::get_path() noexcept
     }
 }
 
-[[nodiscard]] char constexpr Car::to_connector(
+[[nodiscard]] char constexpr Car::connector_to_char(
   const connector_ptr& var) noexcept
 {
-    if (std::get_if<NarrowBridge*>(&var))
+    if (std::get_if<NarrowBridge*>(&var) != nullptr)
     {
         return 'N';
     }
-    if (std::get_if<Ferry*>(&var))
+    if (std::get_if<Ferry*>(&var) != nullptr)
     {
         return 'F';
     }
-    if (std::get_if<Crossroad*>(&var))
+    if (std::get_if<Crossroad*>(&var) != nullptr)
     {
         return 'C';
     }

@@ -36,8 +36,8 @@ class Car
     void get_path() noexcept;
     [[nodiscard]] connector_ptr constexpr to_connector(
       const std::string&) const noexcept;
-    [[nodiscard]] char static constexpr to_connector(
-      const connector_ptr& v) noexcept;
+    [[nodiscard]] char static constexpr connector_to_char(
+      const connector_ptr&) noexcept;
     [[nodiscard]] i32 static constexpr to_int(const char&) noexcept;
     [[nodiscard]] u32 static constexpr to_uint(const char&) noexcept;
 };
