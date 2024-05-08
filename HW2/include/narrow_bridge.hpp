@@ -1,6 +1,7 @@
 #pragma once
 
 #include "monitor.h"
+#include <chrono>
 #include <cstdint>
 #include <queue>
 
@@ -17,9 +18,12 @@ class NarrowBridge : public Monitor
     i32 maximum_wait_time;
 
     Condition cv1{ this };
-    i32 curr_dir{ 0 };
-    std::queue<Car*> zero_to_one;
-    std::queue<Car*> one_to_zero;
+    i32 curr_from{ 0 };
+    bool car_passing{ false };
+    std::queue<Car*> from_zero;
+    std::queue<Car*> from_one;
+    // std::chrono::time_point<> prev{};
 
     void pass(const Car&, i32) noexcept;
+    bool constexpr is_timer_elapsed() noexcept;
 };
