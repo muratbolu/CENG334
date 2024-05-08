@@ -67,7 +67,8 @@ void Car::get_path() noexcept
     }
 }
 
-[[nodiscard]] Car::connector_ptr constexpr Car::to_connector(
+// Removed constexpr because libstdc++ is not updated in lab computers
+[[nodiscard]] Car::connector_ptr Car::to_connector(
   const std::string& str) const noexcept
 {
     switch (str[0])

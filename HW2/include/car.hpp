@@ -34,8 +34,7 @@ class Car
     static void* car_routine(void*);
 
     void get_path() noexcept;
-    [[nodiscard]] connector_ptr constexpr to_connector(
-      const std::string&) const noexcept;
+    [[nodiscard]] connector_ptr to_connector(const std::string&) const noexcept;
     [[nodiscard]] char static constexpr connector_to_char(
       const connector_ptr&) noexcept;
     [[nodiscard]] i32 static constexpr to_int(const char&) noexcept;
