@@ -8,7 +8,6 @@
 #include "simulator.hpp"
 
 #include <cassert>
-#include <cstddef>
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -18,12 +17,11 @@ void* Car::car_routine(void* arg)
 {
     assert(arg != nullptr);
     Car& car{ *static_cast<Car*>(arg) };
-    for (std::size_t i{ 0 }; i < car.path.size(); ++i)
+    for (auto& p : car.path)
     {
-        auto p{ car.path[i] };
-        auto output = [i, p](auto&& e)
+        auto output = [car, p](auto&& e)
         {
-            return WriteOutput(static_cast<int>(i),
+            return WriteOutput(car.id,
                                connector_to_char(p.connector_type),
                                p.connector_id,
                                std::forward<decltype(e)>(e));

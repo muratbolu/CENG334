@@ -19,6 +19,7 @@ class Car
     using connector_ptr = std::variant<NarrowBridge*, Ferry*, Crossroad*>;
 
     Simulator* sim;
+    i32 id;
     i32 travel_time;
 
     struct Destination

@@ -25,29 +25,40 @@ void Simulator::run() noexcept
 void Simulator::parse_input() noexcept
 {
     u32 temp;
+    i32 i{ 0 };
     std::cin >> temp;
     narrow_bridges.resize(temp);
     for (auto& n : narrow_bridges)
     {
+        n.id = i++;
         std::cin >> n.travel_time >> n.maximum_wait_time;
     }
+
+    i = 0;
     std::cin >> temp;
     ferries.resize(temp);
     for (auto& f : ferries)
     {
+        f.id = i++;
         std::cin >> f.travel_time >> f.maximum_wait_time >> f.capacity;
     }
+
+    i = 0;
     std::cin >> temp;
     crossroads.resize(temp);
     for (auto& c : crossroads)
     {
+        c.id = i++;
         std::cin >> c.travel_time >> c.maximum_wait_time;
     }
+
+    i = 0;
     std::cin >> temp;
     cars.resize(temp);
     for (auto& c : cars)
     {
         c.sim = this;
+        c.id = i++;
         std::cin >> c.travel_time;
         c.get_path();
     }

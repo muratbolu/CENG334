@@ -15,6 +15,7 @@ class Ferry : public Monitor
     i32 travel_time;
     i32 maximum_wait_time;
     i32 capacity;
+    i32 id;
 
     Condition cv1{ this };
 

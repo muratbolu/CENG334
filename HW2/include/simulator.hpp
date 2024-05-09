@@ -17,13 +17,15 @@ class Simulator
 
     Simulator(const Simulator&) = delete;
     Simulator(Simulator&&) = delete;
+
     Simulator& operator=(const Simulator&) = delete;
-    Simulator&& operator=(Simulator&&) = delete;
+    Simulator& operator=(Simulator&&) = delete;
 
     void run() noexcept;
 
    private:
     using u8 = std::uint8_t;
+    using i32 = std::int32_t;
     using u32 = std::uint32_t;
 
     friend Car;
