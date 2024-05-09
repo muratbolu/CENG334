@@ -97,10 +97,12 @@ void NarrowBridge::wait_for_lane(const Car& car, i32 from) noexcept
     timeout.tv_nsec = static_cast<__syscall_slong_t>(maximum_wait_time);
     */
 
-    if ((curr_from != from) || (&car != curr_queue.front()))
+    // checks if going next, skips waiting
+    if ((curr_from == from) && (&car == curr_queue.front()))
     {
-        curr_cond.wait();
+        return;
     }
+    curr_cond.wait();
 }
 
 bool NarrowBridge::is_timer_elapsed() noexcept
