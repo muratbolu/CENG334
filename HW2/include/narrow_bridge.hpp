@@ -4,10 +4,9 @@
 
 #include <chrono>
 #include <cstdint>
-#include <memory>
+#include <queue>
 
 class Car;
-class Queue;
 
 class NarrowBridge : public Monitor
 {
@@ -17,6 +16,8 @@ class NarrowBridge : public Monitor
     using time = std::chrono::steady_clock;
     using ms = std::chrono::milliseconds;
     using time_point = std::chrono::time_point<time>;
+
+    using car_queue = std::queue<const Car*>;
 
     NarrowBridge() noexcept;
     ~NarrowBridge() noexcept;
@@ -34,14 +35,17 @@ class NarrowBridge : public Monitor
     Condition wait_zero{ this };
     Condition wait_one{ this };
 
-    std::unique_ptr<Queue> queue;
+    car_queue from_zero;
+    car_queue from_one;
 
     i32 curr_from{ 0 };
 
-    time_point prev;
-
     void pass(const Car&, i32) noexcept;
+
+    void add_car_to_queue(const Car&, i32) noexcept;
     bool can_pass(const Car&, i32) noexcept;
     void wait_for_lane(i32) noexcept;
+
+    time_point prev;
     bool is_timer_elapsed() noexcept;
 };

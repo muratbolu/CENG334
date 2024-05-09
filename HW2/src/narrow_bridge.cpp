@@ -4,17 +4,10 @@
 #include "car.hpp"
 #include "helper.h"
 #include "monitor.h"
-#include "queue.hpp"
 
 #include <chrono>
-#include <memory>
 
-NarrowBridge::NarrowBridge() noexcept
-    : queue{ std::make_unique<Queue>() }
-{
-    ;
-}
-
+NarrowBridge::NarrowBridge() noexcept = default;
 NarrowBridge::~NarrowBridge() noexcept = default;
 
 NarrowBridge::NarrowBridge(NarrowBridge&&) noexcept = default;
@@ -22,7 +15,7 @@ NarrowBridge& NarrowBridge::operator=(NarrowBridge&&) noexcept = default;
 
 void NarrowBridge::pass(const Car& car, i32 from) noexcept
 {
-    queue->emplace(&car, from);
+    add_car_to_queue(car, from);
     for (;;)
     {
         if (can_pass(car, from))
@@ -56,14 +49,23 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
     }
 }
 
+void NarrowBridge::add_car_to_queue(const Car& car, i32 from) noexcept
+{
+    __synchronized__; // NOLINT
+    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
+    curr_queue.emplace(&car);
+}
+
 bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
 {
     __synchronized__; // NOLINT
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
+    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
+    car_queue& opp_queue{ static_cast<bool>(from) ? from_zero : from_one };
 
-    if ((curr_from == from) && (&car == queue->front(from)))
+    if ((curr_from == from) && (&car == curr_queue.front()))
     {
-        queue->pop(from);
+        curr_queue.pop();
         sleep_milli(PASS_DELAY);
         WriteOutput(car.id, 'N', this->id, START_PASSING);
         sleep_milli(travel_time);
@@ -71,8 +73,8 @@ bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
         curr_cond.notifyAll();
         return true;
     }
-    // queue->empty(!from) means check if opposing queue is empty
-    if (is_timer_elapsed() || queue->empty(!from))
+    // deprecated: queue->empty(!from) means check if opposing queue is empty
+    if (is_timer_elapsed() || opp_queue.empty())
     {
         curr_from = from;
         curr_cond.notifyAll();
@@ -84,14 +86,15 @@ bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
 
 void NarrowBridge::wait_for_lane(i32 from) noexcept
 {
-    Lock mutex{ this };
+    __synchronized__; // NOLINT
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
 
-    // Maybe needed to prevent deadlocks?
+    /* Maybe needed to prevent deadlocks?
     struct timespec timeout
     {
     };
     timeout.tv_nsec = static_cast<__syscall_slong_t>(maximum_wait_time);
+    */
 
     curr_cond.wait();
 }
