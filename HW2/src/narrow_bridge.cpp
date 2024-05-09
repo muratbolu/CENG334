@@ -22,7 +22,7 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
         {
             return;
         }
-        wait_for_lane(from);
+        wait_for_lane(car, from);
 
         /*
         while (curr_from == from)
@@ -74,7 +74,7 @@ bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
         return true;
     }
     // deprecated: queue->empty(!from) means check if opposing queue is empty
-    if (is_timer_elapsed() || opp_queue.empty())
+    if (opp_queue.empty())
     {
         curr_from = from;
         curr_cond.notifyAll();
@@ -84,10 +84,11 @@ bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
     return false;
 }
 
-void NarrowBridge::wait_for_lane(i32 from) noexcept
+void NarrowBridge::wait_for_lane(const Car& car, i32 from) noexcept
 {
     __synchronized__; // NOLINT
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
+    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
 
     /* Maybe needed to prevent deadlocks?
     struct timespec timeout
@@ -96,7 +97,10 @@ void NarrowBridge::wait_for_lane(i32 from) noexcept
     timeout.tv_nsec = static_cast<__syscall_slong_t>(maximum_wait_time);
     */
 
-    curr_cond.wait();
+    if ((curr_from != from) || (&car != curr_queue.front()))
+    {
+        curr_cond.wait();
+    }
 }
 
 bool NarrowBridge::is_timer_elapsed() noexcept

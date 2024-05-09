@@ -44,7 +44,7 @@ class NarrowBridge : public Monitor
 
     void add_car_to_queue(const Car&, i32) noexcept;
     bool can_pass(const Car&, i32) noexcept;
-    void wait_for_lane(i32) noexcept;
+    void wait_for_lane(const Car&, i32) noexcept;
 
     time_point prev;
     bool is_timer_elapsed() noexcept;
