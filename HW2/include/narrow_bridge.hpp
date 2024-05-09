@@ -10,7 +10,6 @@ class Car;
 
 class NarrowBridge : public Monitor
 {
-   public:
     using i32 = std::int32_t;
 
     using time = std::chrono::steady_clock;
@@ -18,6 +17,11 @@ class NarrowBridge : public Monitor
     using time_point = std::chrono::time_point<time>;
 
     using car_queue = std::queue<const Car*>;
+
+   public:
+    i32 travel_time;
+    i32 maximum_wait_time;
+    i32 id;
 
     NarrowBridge() noexcept;
     ~NarrowBridge() noexcept;
@@ -28,10 +32,9 @@ class NarrowBridge : public Monitor
     NarrowBridge(NarrowBridge&&) noexcept;
     NarrowBridge& operator=(NarrowBridge&&) noexcept;
 
-    i32 travel_time;
-    i32 maximum_wait_time;
-    i32 id;
+    void pass(const Car&, i32) noexcept;
 
+   private:
     Condition wait_zero{ this };
     Condition wait_one{ this };
 
@@ -39,8 +42,6 @@ class NarrowBridge : public Monitor
     car_queue from_one;
 
     i32 curr_from{ 0 };
-
-    void pass(const Car&, i32) noexcept;
 
     void add_car_to_queue(const Car&, i32) noexcept;
     bool can_pass(const Car&, i32) noexcept;
