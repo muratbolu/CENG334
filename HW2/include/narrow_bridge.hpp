@@ -43,6 +43,6 @@ class NarrowBridge : public Monitor
 
     i32 curr_from{ 0 };
 
-    bool can_pass(const Car&, i32) noexcept;
-    void wait_for_lane(const Car&, i32) noexcept;
+    bool car_passed_before{ false };
+    bool lane_busy{ false };
 };

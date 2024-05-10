@@ -21,39 +21,44 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
     car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
-    car_queue& opp_queue{ static_cast<bool>(from) ? from_zero : from_one };
 
     curr_queue.emplace(&car);
-    int rc{ ETIMEDOUT };
+    bool car_passed_before{ false };
+    bool lane_busy{ false };
 
     for (;;)
     {
-
         if (curr_from == from)
         {
             if (&car == curr_queue.front())
             {
-                curr_queue.pop();
-                if (rc == 0)
+                if (car_passed_before)
                 {
                     sleep_milli(PASS_DELAY);
                 }
+                car_passed_before = true;
+                lane_busy = true;
+                curr_queue.pop();
                 WriteOutput(car.id, 'N', this->id, START_PASSING);
                 curr_cond.notifyAll();
                 mutex.unlock();
                 sleep_milli(travel_time);
                 mutex.lock();
+                if (curr_queue.empty())
+                {
+                    lane_busy = false;
+                }
                 WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
                 return;
             }
+            else
+            {
+                curr_cond.wait();
+                continue;
+            }
         }
-        else if (opp_queue.empty())
-        {
-            curr_from = from;
-            curr_cond.notifyAll();
-            continue;
-        }
-        else if (curr_queue.size() == 1)
+        // opposing direction
+        else if (curr_queue.size() == 1 && lane_busy)
         {
             // Set timer
             struct timespec max_wait;
@@ -67,72 +72,28 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                 max_wait.tv_nsec %= 1000000000;
             }
 
-            rc = curr_cond.timedwait(&max_wait);
+            int rc{ curr_cond.timedwait(&max_wait) };
 
-            if (rc == 0) // notified by another thread
+            if (rc == 0) // notified by another thread, going first!
             {
                 continue;
             }
-            if (rc == ETIMEDOUT)
+            if (rc == ETIMEDOUT) // timeout, switch
             {
+                car_passed_before = false;
                 curr_from = from;
                 curr_cond.notifyAll();
                 continue;
             }
             assert(0 && "unreachable");
         }
-        else
+        else if (!lane_busy)
         {
-            curr_cond.wait();
+            car_passed_before = false;
+            curr_from = from;
+            curr_cond.notifyAll();
+            continue;
         }
+        assert(0 && "unreachable");
     }
-}
-
-bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
-{
-    __synchronized__; // NOLINT
-    Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
-    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
-    car_queue& opp_queue{ static_cast<bool>(from) ? from_zero : from_one };
-
-    if ((curr_from == from) && (&car == curr_queue.front()))
-    {
-        curr_queue.pop();
-        sleep_milli(PASS_DELAY);
-        WriteOutput(car.id, 'N', this->id, START_PASSING);
-        sleep_milli(travel_time);
-        WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
-        curr_cond.notifyAll();
-        return true;
-    }
-    // deprecated: queue->empty(!from) means check if opposing queue is empty
-    if (opp_queue.empty())
-    {
-        curr_from = from;
-        curr_cond.notifyAll();
-        return false;
-    }
-
-    return false;
-}
-
-void NarrowBridge::wait_for_lane(const Car& car, i32 from) noexcept
-{
-    __synchronized__; // NOLINT
-    Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
-    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
-
-    /* Maybe needed to prevent deadlocks?
-    struct timespec timeout
-    {
-    };
-    timeout.tv_nsec = static_cast<__syscall_slong_t>(maximum_wait_time);
-    */
-
-    // checks if going next, skips waiting
-    if ((curr_from == from) && (&car == curr_queue.front()))
-    {
-        return;
-    }
-    curr_cond.wait();
 }
