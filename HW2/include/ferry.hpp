@@ -11,6 +11,7 @@ class Car;
 class Ferry : public Monitor
 {
     using i32 = std::int32_t;
+    using i64 = std::int64_t;
 
     using time = std::chrono::steady_clock;
     using ms = std::chrono::milliseconds;
@@ -41,11 +42,4 @@ class Ferry : public Monitor
 
     i32 cap_zero;
     i32 cap_one;
-
-    // void increment_capacity(i32) noexcept;
-    // bool can_pass(const Car&, i32) noexcept;
-    // void wait_for_departure(i32) noexcept;
-
-    // time_point prev{};
-    // bool is_timer_elapsed() noexcept;
 };
