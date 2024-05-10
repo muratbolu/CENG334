@@ -5,7 +5,9 @@
 #include "helper.h"
 #include "monitor.h"
 
-#include <chrono>
+#include <cassert>
+#include <cerrno>
+#include <ctime>
 
 NarrowBridge::NarrowBridge() noexcept = default;
 NarrowBridge::~NarrowBridge() noexcept = default;
@@ -15,45 +17,75 @@ NarrowBridge& NarrowBridge::operator=(NarrowBridge&&) noexcept = default;
 
 void NarrowBridge::pass(const Car& car, i32 from) noexcept
 {
-    add_car_to_queue(car, from);
+    __synchronized__;
+
+    Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
+    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
+    car_queue& opp_queue{ static_cast<bool>(from) ? from_zero : from_one };
+
+    curr_queue.emplace(&car);
+    int rc{ ETIMEDOUT };
+
     for (;;)
     {
-        if (can_pass(car, from))
-        {
-            return;
-        }
-        wait_for_lane(car, from);
 
-        /*
-        while (curr_from == from)
+        if (curr_from == from)
         {
-            while (car_passing)
+            if (&car == curr_queue.front())
             {
-                wait_for_lane(from);
-            }
-            if (is_first(car, from))
-            {
-                ;
+                curr_queue.pop();
+                if (rc == 0)
+                {
+                    sleep_milli(PASS_DELAY);
+                }
+                WriteOutput(car.id, 'N', this->id, START_PASSING);
+                curr_cond.notifyAll();
+                mutex.unlock();
+                sleep_milli(travel_time);
+                mutex.lock();
+                WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
+                return;
             }
         }
-        if (is_timer_elapsed() || lane_empty())
+        else if (opp_queue.empty())
         {
-            switch_lane(from);
-            notify_all(from);
+            curr_from = from;
+            curr_cond.notifyAll();
+            continue;
+        }
+        else if (curr_queue.size() == 1)
+        {
+            // Set timer
+            struct timespec max_wait;
+            clock_gettime(CLOCK_REALTIME, &max_wait);
+
+            max_wait.tv_sec += maximum_wait_time / 1000;
+            max_wait.tv_nsec += (maximum_wait_time % 1000) * 1000000;
+            if (max_wait.tv_nsec >= 1000000000)
+            {
+                max_wait.tv_sec += max_wait.tv_nsec / 1000000000;
+                max_wait.tv_nsec %= 1000000000;
+            }
+
+            rc = curr_cond.timedwait(&max_wait);
+
+            if (rc == 0) // notified by another thread
+            {
+                continue;
+            }
+            if (rc == ETIMEDOUT)
+            {
+                curr_from = from;
+                curr_cond.notifyAll();
+                continue;
+            }
+            assert(0 && "unreachable");
         }
         else
         {
-            wait_for_lane(car, from);
+            curr_cond.wait();
         }
-        */
     }
-}
-
-void NarrowBridge::add_car_to_queue(const Car& car, i32 from) noexcept
-{
-    __synchronized__; // NOLINT
-    car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
-    curr_queue.emplace(&car);
 }
 
 bool NarrowBridge::can_pass(const Car& car, i32 from) noexcept
@@ -103,13 +135,4 @@ void NarrowBridge::wait_for_lane(const Car& car, i32 from) noexcept
         return;
     }
     curr_cond.wait();
-}
-
-bool NarrowBridge::is_timer_elapsed() noexcept
-{
-    // TODO: must return true when it's called for the first time
-    time_point now{ time::now() };
-    auto elapsed{ std::chrono::duration_cast<ms>(now - prev) };
-    prev = now;
-    return (elapsed > ms{ maximum_wait_time });
 }
