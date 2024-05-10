@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "monitor.h"
 
+#include <cassert>
 #include <cerrno>
 #include <ctime>
 
@@ -51,6 +52,10 @@ void Ferry::pass(const Car& car, i32 from) noexcept
             mutex.unlock();
             sleep_milli(travel_time);
             mutex.lock();
+        }
+        else
+        {
+            assert(0 && "unreachable");
         }
     }
     else if (curr_cap == capacity)
