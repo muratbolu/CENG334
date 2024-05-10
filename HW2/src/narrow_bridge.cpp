@@ -23,8 +23,6 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
     car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
 
     curr_queue.emplace(&car);
-    bool car_passed_before{ false };
-    bool lane_busy{ false };
 
     for (;;)
     {
