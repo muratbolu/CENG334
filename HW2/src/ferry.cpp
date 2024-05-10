@@ -22,8 +22,6 @@ void Ferry::pass(const Car& car, i32 from) noexcept
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
     i32& curr_cap{ static_cast<bool>(from) ? cap_one : cap_zero };
 
-    WriteOutput(car.id, 'F', this->id, START_PASSING);
-
     ++curr_cap;
 
     if (curr_cap == 1)
@@ -39,12 +37,14 @@ void Ferry::pass(const Car& car, i32 from) noexcept
             max_wait.tv_nsec %= 1000000000;
         }
 
-        int rc{ 0 };
-        while (rc == 0)
-        {
-            rc = curr_cond.timedwait(&max_wait);
-        }
+        WriteOutput(car.id, 'F', this->id, START_PASSING);
+        int rc{ curr_cond.timedwait(&max_wait) };
 
+        if (rc == 0) // notified
+        {
+            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+            return;
+        }
         if (rc == ETIMEDOUT)
         {
             curr_cap = 0;
@@ -52,24 +52,27 @@ void Ferry::pass(const Car& car, i32 from) noexcept
             mutex.unlock();
             sleep_milli(travel_time);
             mutex.lock();
+            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+            return;
         }
-        else
-        {
-            assert(0 && "unreachable");
-        }
+        assert(0 && "unreachable");
     }
     else if (curr_cap == capacity)
     {
+        WriteOutput(car.id, 'F', this->id, START_PASSING);
         curr_cap = 0;
         curr_cond.notifyAll();
         mutex.unlock();
         sleep_milli(travel_time);
         mutex.lock();
+        WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+        return;
     }
     else
     {
+        WriteOutput(car.id, 'F', this->id, START_PASSING);
         curr_cond.wait();
+        WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+        return;
     }
-
-    WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
 }
