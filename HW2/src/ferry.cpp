@@ -24,40 +24,7 @@ void Ferry::pass(const Car& car, i32 from) noexcept
 
     ++curr_cap;
 
-    if (curr_cap == 1)
-    {
-        struct timespec max_wait;
-        clock_gettime(CLOCK_REALTIME, &max_wait);
-
-        max_wait.tv_sec += maximum_wait_time / 1000;
-        max_wait.tv_nsec += (maximum_wait_time % 1000) * 1000000;
-        if (max_wait.tv_nsec >= 1000000000)
-        {
-            max_wait.tv_sec += max_wait.tv_nsec / 1000000000;
-            max_wait.tv_nsec %= 1000000000;
-        }
-
-        WriteOutput(car.id, 'F', this->id, START_PASSING);
-        int rc{ curr_cond.timedwait(&max_wait) };
-
-        if (rc == 0) // notified
-        {
-            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
-            return;
-        }
-        if (rc == ETIMEDOUT)
-        {
-            curr_cap = 0;
-            curr_cond.notifyAll();
-            mutex.unlock();
-            sleep_milli(travel_time);
-            mutex.lock();
-            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
-            return;
-        }
-        assert(0 && "unreachable");
-    }
-    else if (curr_cap == capacity)
+    if (curr_cap == capacity)
     {
         WriteOutput(car.id, 'F', this->id, START_PASSING);
         curr_cap = 0;
@@ -70,9 +37,42 @@ void Ferry::pass(const Car& car, i32 from) noexcept
     }
     else
     {
-        WriteOutput(car.id, 'F', this->id, START_PASSING);
-        curr_cond.wait();
-        WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
-        return;
+        struct timespec max_wait;
+        clock_gettime(CLOCK_REALTIME, &max_wait);
+
+        max_wait.tv_sec += maximum_wait_time / 1000;
+        max_wait.tv_nsec += (maximum_wait_time % 1000) * 1000000;
+        if (max_wait.tv_nsec >= 1000000000)
+        {
+            max_wait.tv_sec += max_wait.tv_nsec / 1000000000;
+            max_wait.tv_nsec %= 1000000000;
+        }
+
+        int rc{ curr_cond.timedwait(&max_wait) };
+
+        if (rc == 0) // notified
+        {
+            WriteOutput(car.id, 'F', this->id, START_PASSING);
+            mutex.unlock();
+            sleep_milli(travel_time);
+            mutex.lock();
+            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+            return;
+        }
+        else if (rc == ETIMEDOUT)
+        {
+            WriteOutput(car.id, 'F', this->id, START_PASSING);
+            curr_cap = 0;
+            curr_cond.notifyAll();
+            mutex.unlock();
+            sleep_milli(travel_time);
+            mutex.lock();
+            WriteOutput(car.id, 'F', this->id, FINISH_PASSING);
+            return;
+        }
+        else
+        {
+            assert(0 && "unreachable");
+        }
     }
 }
