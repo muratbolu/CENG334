@@ -39,6 +39,13 @@ class Ferry : public Monitor
     Condition wait_zero{ this };
     Condition wait_one{ this };
 
-    car_queue from_zero;
-    car_queue from_one;
+    i32 cap_zero;
+    i32 cap_one;
+
+    // void increment_capacity(i32) noexcept;
+    // bool can_pass(const Car&, i32) noexcept;
+    // void wait_for_departure(i32) noexcept;
+
+    // time_point prev{};
+    // bool is_timer_elapsed() noexcept;
 };
