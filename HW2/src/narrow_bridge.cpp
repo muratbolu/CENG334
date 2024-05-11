@@ -94,7 +94,11 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
             {
                 // TODO
                 lane.curr_from = from;
-                curr_cond.wait();
+                if (!lane.curr_passing.empty())
+                {
+                    curr_cond.wait();
+                }
+                continue;
             }
             else
             {
