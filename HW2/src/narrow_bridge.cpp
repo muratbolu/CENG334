@@ -53,8 +53,8 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
                 WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
 
-                assert(lane.curr_passing.front().first == &car);
-                lane.curr_passing.pop();
+                if(lane.curr_passing.front().first == &car)
+                    lane.curr_passing.pop();
                 if (lane.curr_passing.empty())
                 {
                     opp_cond.notifyAll();
