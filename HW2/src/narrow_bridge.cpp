@@ -32,7 +32,8 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
         {
             if (curr_queue.front() == &car)
             {
-                if (!lane.curr_passing.empty())
+                if (!lane.curr_passing.empty() &&
+                    lane.curr_passing.front().second == from)
                 {
                     mutex.unlock();
                     sleep_milli(PASS_DELAY);
@@ -40,7 +41,15 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                 }
 
                 curr_queue.pop();
-                lane.curr_passing.emplace(&car);
+                lane.curr_passing.emplace(&car, from);
+
+                /*
+                if (lane.curr_passing.front().second != from)
+                {
+                    curr_cond.wait();
+                }
+                */
+
                 curr_cond.notifyAll();
 
                 WriteOutput(car.id, 'N', this->id, START_PASSING);
@@ -51,11 +60,10 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
                 WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
 
-                assert(lane.curr_passing.front() == &car);
+                assert(lane.curr_passing.front().first == &car);
                 lane.curr_passing.pop();
                 if (lane.curr_passing.empty())
                 {
-                    lane.curr_from = opp_from;
                     opp_cond.notifyAll();
                 }
                 return;
@@ -69,6 +77,7 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
         else if (lane.curr_passing.empty())
         {
             lane.curr_from = from;
+            WriteOutput(car.id, 'N', this->id, SWITCHING_LANE);
             continue;
         }
         else
@@ -88,16 +97,15 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
             if (rc == 0) // notified
             {
+                lane.curr_from = from;
+                WriteOutput(car.id, 'N', this->id, SWITCHING_LANE);
                 continue;
             }
             else if (rc == ETIMEDOUT)
             {
                 // TODO
                 lane.curr_from = from;
-                if (!lane.curr_passing.empty())
-                {
-                    curr_cond.wait();
-                }
+                WriteOutput(car.id, 'N', this->id, SWITCHING_LANE_TIMEOUT);
                 continue;
             }
             else

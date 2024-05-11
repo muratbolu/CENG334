@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <queue>
+#include <utility>
 
 class Car;
 
@@ -44,6 +45,6 @@ class NarrowBridge : public Monitor
     struct
     {
         i32 curr_from{ 0 };
-        car_queue curr_passing;
+        std::queue<std::pair<const Car*, i32>> curr_passing;
     } lane;
 };
