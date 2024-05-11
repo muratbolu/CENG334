@@ -45,6 +45,12 @@ void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Acti
         case FINISH_PASSING:
             fprintf(f, "finished passing connector.\n");
             break;
+        case SWITCHING_LANE:
+            fprintf(f, "switching lane.\n");
+            break;
+        case SWITCHING_LANE_TIMEOUT:
+            fprintf(f, "timed out, switching lane.\n");
+            break;
         default:
             fprintf(f, "Wrong argument format.\n");
             break;

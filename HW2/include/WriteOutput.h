@@ -14,7 +14,9 @@ typedef enum Action {
     TRAVEL,
     ARRIVE,
     START_PASSING,
-    FINISH_PASSING
+    FINISH_PASSING,
+    SWITCHING_LANE,
+    SWITCHING_LANE_TIMEOUT
 }Action;
 
 void InitWriteOutput();
