@@ -2,7 +2,6 @@
 
 #include "monitor.h"
 
-#include <chrono>
 #include <cstdint>
 #include <queue>
 #include <utility>
@@ -12,11 +11,6 @@ class Car;
 class NarrowBridge : public Monitor
 {
     using i32 = std::int32_t;
-
-    using time = std::chrono::steady_clock;
-    using ms = std::chrono::milliseconds;
-    using time_point = std::chrono::time_point<time>;
-
     using car_queue = std::queue<const Car*>;
 
    public:

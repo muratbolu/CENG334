@@ -2,7 +2,6 @@
 
 #include "monitor.h"
 
-#include <chrono>
 #include <cstdint>
 #include <queue>
 
@@ -12,11 +11,6 @@ class Ferry : public Monitor
 {
     using i32 = std::int32_t;
     using i64 = std::int64_t;
-
-    using time = std::chrono::steady_clock;
-    using ms = std::chrono::milliseconds;
-    using time_point = std::chrono::time_point<time>;
-
     using car_queue = std::queue<const Car*>;
 
    public:
