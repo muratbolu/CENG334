@@ -43,13 +43,6 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                 curr_queue.pop();
                 lane.curr_passing.emplace(&car, from);
 
-                /*
-                if (lane.curr_passing.front().second != from)
-                {
-                    curr_cond.wait();
-                }
-                */
-
                 curr_cond.notifyAll();
 
                 WriteOutput(car.id, 'N', this->id, START_PASSING);
