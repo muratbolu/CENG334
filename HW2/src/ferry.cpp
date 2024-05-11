@@ -5,7 +5,6 @@
 #include "helper.h"
 #include "monitor.h"
 
-#include <cassert>
 #include <cerrno>
 #include <ctime>
 
@@ -72,7 +71,7 @@ void Ferry::pass(const Car& car, i32 from) noexcept
         }
         else
         {
-            assert(0 && "unreachable");
+            return;
         }
     }
 }

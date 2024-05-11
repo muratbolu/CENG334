@@ -5,7 +5,6 @@
 #include "helper.h"
 #include "monitor.h"
 
-#include <cassert>
 #include <cerrno>
 #include <ctime>
 
@@ -53,8 +52,10 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
                 WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
 
-                if(lane.curr_passing.front().first == &car)
+                if (lane.curr_passing.front().first == &car)
+                {
                     lane.curr_passing.pop();
+                }
                 if (lane.curr_passing.empty())
                 {
                     opp_cond.notifyAll();
@@ -70,7 +71,6 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
         else if (lane.curr_passing.empty())
         {
             lane.curr_from = from;
-            WriteOutput(car.id, 'N', this->id, SWITCHING_LANE);
             continue;
         }
         else
@@ -91,19 +91,17 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
             if (rc == 0) // notified
             {
                 lane.curr_from = from;
-                WriteOutput(car.id, 'N', this->id, SWITCHING_LANE);
                 continue;
             }
             else if (rc == ETIMEDOUT)
             {
                 // TODO
                 lane.curr_from = from;
-                WriteOutput(car.id, 'N', this->id, SWITCHING_LANE_TIMEOUT);
                 continue;
             }
             else
             {
-                assert(0 && "unreachable");
+                continue;
             }
         }
     }

@@ -7,7 +7,6 @@
 #include "narrow_bridge.hpp"
 #include "simulator.hpp"
 
-#include <cassert>
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -15,7 +14,6 @@
 
 void* Car::car_routine(void* arg)
 {
-    assert(arg != nullptr);
     Car& car{ *static_cast<Car*>(arg) };
     for (auto& p : car.path)
     {
@@ -43,10 +41,6 @@ void* Car::car_routine(void* arg)
         {
             (*cr)->pass(car, p.from);
         }
-        else
-        {
-            assert(0 && "unreachable");
-        }
     }
     pthread_exit(nullptr);
 }
@@ -71,6 +65,8 @@ void Car::get_path() noexcept
 {
     switch (str[0])
     {
+        // default return as NarrowBridge
+        default:
         case 'N':
         {
             return &sim->narrow_bridges[to_uint(str[1])];
@@ -82,10 +78,6 @@ void Car::get_path() noexcept
         case 'C':
         {
             return &sim->crossroads[to_uint(str[1])];
-        }
-        default:
-        {
-            assert(0 && "unreachable");
         }
     }
 }
@@ -105,7 +97,8 @@ void Car::get_path() noexcept
     {
         return 'C';
     }
-    assert(0 && "unreachable");
+    // default return as NarrowBridge
+    return 'N';
 }
 
 [[nodiscard]] Car::i32 constexpr Car::to_int(const char& c) noexcept
