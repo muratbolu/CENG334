@@ -55,7 +55,6 @@ void Crossroad::pass(const Car& car, i32 from) noexcept
                 {
                     lane.curr_passing.pop();
                 }
-                lane.curr_passing.pop();
                 if (lane.curr_passing.empty())
                 {
                     // initialize with this lane
