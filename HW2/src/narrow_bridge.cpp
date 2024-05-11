@@ -20,32 +20,43 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
     __synchronized__;
 
     Condition& curr_cond{ static_cast<bool>(from) ? wait_one : wait_zero };
+    Condition& opp_cond{ static_cast<bool>(from) ? wait_zero : wait_one };
     car_queue& curr_queue{ static_cast<bool>(from) ? from_one : from_zero };
+    i32 opp_from{ static_cast<bool>(from) ? 0 : 1 };
 
     curr_queue.emplace(&car);
 
     for (;;)
     {
-        if (curr_from == from)
+        if (lane.curr_from == from)
         {
-            if (&car == curr_queue.front())
+            if (curr_queue.front() == &car)
             {
-                if (car_passed_before)
+                if (!lane.curr_passing.empty())
                 {
+                    mutex.unlock();
                     sleep_milli(PASS_DELAY);
+                    mutex.lock();
                 }
-                car_passed_before = true;
-                lane_busy = true;
-                curr_queue.pop();
+
                 WriteOutput(car.id, 'N', this->id, START_PASSING);
+
+                curr_queue.pop();
+                lane.curr_passing.emplace(&car);
                 curr_cond.notifyAll();
+
                 mutex.unlock();
                 sleep_milli(travel_time);
                 mutex.lock();
-                if (curr_queue.empty())
+
+                assert(lane.curr_passing.front() == &car);
+                lane.curr_passing.pop();
+                if (lane.curr_passing.empty())
                 {
-                    lane_busy = false;
+                    lane.curr_from = opp_from;
+                    opp_cond.notifyAll();
                 }
+
                 WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
                 return;
             }
@@ -55,10 +66,27 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                 continue;
             }
         }
-        // opposing direction
-        else if (curr_queue.size() == 1 && lane_busy)
+        else if (lane.curr_passing.empty())
         {
-            // Set timer
+            lane.curr_from = from;
+            continue;
+        }
+        else
+        {
+            // TODO: timed wait
+            curr_cond.wait();
+            continue;
+        }
+        /*
+        else if (!lane_busy)
+        {
+            curr_from = from;
+            car_passed_before = false;
+            curr_cond.notifyAll();
+            continue;
+        }
+        else
+        {
             struct timespec max_wait;
             clock_gettime(CLOCK_REALTIME, &max_wait);
 
@@ -72,26 +100,23 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
 
             int rc{ curr_cond.timedwait(&max_wait) };
 
-            if (rc == 0) // notified by another thread, going first!
+            if (rc == 0) // notified
             {
                 continue;
             }
-            if (rc == ETIMEDOUT) // timeout, switch
+            else if (rc == ETIMEDOUT)
             {
-                car_passed_before = false;
                 curr_from = from;
+                car_passed_before = false;
                 curr_cond.notifyAll();
                 continue;
             }
-            assert(0 && "unreachable");
-        }
-        else if (!lane_busy)
-        {
-            car_passed_before = false;
-            curr_from = from;
-            curr_cond.notifyAll();
-            continue;
+            else
+            {
+                assert(0 && "unreachable");
+            }
         }
         assert(0 && "unreachable");
+        */
     }
 }

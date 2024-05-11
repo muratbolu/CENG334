@@ -41,8 +41,9 @@ class NarrowBridge : public Monitor
     car_queue from_zero;
     car_queue from_one;
 
-    i32 curr_from{ 0 };
-
-    bool car_passed_before{ false };
-    bool lane_busy{ false };
+    struct
+    {
+        i32 curr_from{ 0 };
+        car_queue curr_passing;
+    } lane;
 };
