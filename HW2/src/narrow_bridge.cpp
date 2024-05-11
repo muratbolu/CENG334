@@ -39,15 +39,17 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                     mutex.lock();
                 }
 
-                WriteOutput(car.id, 'N', this->id, START_PASSING);
-
                 curr_queue.pop();
                 lane.curr_passing.emplace(&car);
                 curr_cond.notifyAll();
 
+                WriteOutput(car.id, 'N', this->id, START_PASSING);
+
                 mutex.unlock();
                 sleep_milli(travel_time);
                 mutex.lock();
+
+                WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
 
                 assert(lane.curr_passing.front() == &car);
                 lane.curr_passing.pop();
@@ -56,8 +58,6 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
                     lane.curr_from = opp_from;
                     opp_cond.notifyAll();
                 }
-
-                WriteOutput(car.id, 'N', this->id, FINISH_PASSING);
                 return;
             }
             else
@@ -69,20 +69,6 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
         else if (lane.curr_passing.empty())
         {
             lane.curr_from = from;
-            continue;
-        }
-        else
-        {
-            // TODO: timed wait
-            curr_cond.wait();
-            continue;
-        }
-        /*
-        else if (!lane_busy)
-        {
-            curr_from = from;
-            car_passed_before = false;
-            curr_cond.notifyAll();
             continue;
         }
         else
@@ -106,17 +92,14 @@ void NarrowBridge::pass(const Car& car, i32 from) noexcept
             }
             else if (rc == ETIMEDOUT)
             {
-                curr_from = from;
-                car_passed_before = false;
-                curr_cond.notifyAll();
-                continue;
+                // TODO
+                lane.curr_from = from;
+                curr_cond.wait();
             }
             else
             {
                 assert(0 && "unreachable");
             }
         }
-        assert(0 && "unreachable");
-        */
     }
 }
