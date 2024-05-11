@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cerrno>
+#include <cstddef>
 #include <ctime>
 
 Crossroad::Crossroad() noexcept = default;
@@ -20,7 +21,6 @@ void Crossroad::pass(const Car& car, i32 from) noexcept
     __synchronized__;
 
     Condition& curr_cond{ *waits[from % 4] };
-    Condition& next_cond{ *waits[(from + 1) % 4] };
     car_queue& curr_queue{ *queues[from % 4] };
 
     curr_queue.emplace(&car);
@@ -56,7 +56,18 @@ void Crossroad::pass(const Car& car, i32 from) noexcept
                 lane.curr_passing.pop();
                 if (lane.curr_passing.empty())
                 {
-                    next_cond.notifyAll();
+                    // initialize with this lane
+                    Condition* next_cond{ waits[from % 4] };
+                    for (std::size_t i{ 1 }; i < 4; ++i)
+                    {
+                        // if the next queue is not empty, assign
+                        if (!(queues[(from + i) % 4]->empty()))
+                        {
+                            next_cond = waits[(from + i) % 4];
+                            break;
+                        }
+                    }
+                    next_cond->notifyAll();
                 }
                 return;
             }
