@@ -39,6 +39,6 @@ class Car
           const std::string&) const noexcept;
         [[nodiscard]] char static constexpr connector_to_char(
           const connector_ptr&) noexcept;
-        [[nodiscard]] i32 static constexpr to_int(const std::string&) noexcept;
-        [[nodiscard]] u32 static constexpr to_uint(const std::string&) noexcept;
+        [[nodiscard]] i32 static to_int(const std::string&) noexcept;
+        [[nodiscard]] u32 static to_uint(const std::string&) noexcept;
 };

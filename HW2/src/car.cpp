@@ -101,12 +101,12 @@ void Car::get_path() noexcept
     return 'N';
 }
 
-[[nodiscard]] Car::i32 constexpr Car::to_int(const std::string& s) noexcept
+[[nodiscard]] Car::i32 Car::to_int(const std::string& s) noexcept
 {
     return static_cast<i32>(std::stoi(s));
 }
 
-[[nodiscard]] Car::u32 constexpr Car::to_uint(const std::string& s) noexcept
+[[nodiscard]] Car::u32 Car::to_uint(const std::string& s) noexcept
 {
     return static_cast<u32>(std::stoi(s));
 }
