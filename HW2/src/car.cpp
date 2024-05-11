@@ -54,7 +54,7 @@ void Car::get_path() noexcept
     {
         std::string connector_str;
         std::cin >> connector_str >> p.from >> p.to;
-        p.connector_id = to_int(connector_str[1]);
+        p.connector_id = to_int(connector_str.substr(1));
         p.connector_type = to_connector(connector_str);
     }
 }
@@ -69,15 +69,15 @@ void Car::get_path() noexcept
         default:
         case 'N':
         {
-            return &sim->narrow_bridges[to_uint(str[1])];
+            return &sim->narrow_bridges[to_uint(str.substr(1))];
         }
         case 'F':
         {
-            return &sim->ferries[to_uint(str[1])];
+            return &sim->ferries[to_uint(str.substr(1))];
         }
         case 'C':
         {
-            return &sim->crossroads[to_uint(str[1])];
+            return &sim->crossroads[to_uint(str.substr(1))];
         }
     }
 }
@@ -101,12 +101,12 @@ void Car::get_path() noexcept
     return 'N';
 }
 
-[[nodiscard]] Car::i32 constexpr Car::to_int(const char& c) noexcept
+[[nodiscard]] Car::i32 constexpr Car::to_int(const std::string& s) noexcept
 {
-    return static_cast<i32>(c - '0');
+    return static_cast<i32>(std::stoi(s));
 }
 
-[[nodiscard]] Car::u32 constexpr Car::to_uint(const char& c) noexcept
+[[nodiscard]] Car::u32 constexpr Car::to_uint(const std::string& s) noexcept
 {
-    return static_cast<u32>(c - '0');
+    return static_cast<u32>(std::stoi(s));
 }
