@@ -1,6 +1,7 @@
 #include "recext2fs.hpp"
 
 #include "ext2fs.h"
+#include "ext2fs_print.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -31,6 +32,14 @@ recext2fs::recext2fs(int argc, char* argv[]) noexcept
                   << std::endl;
         return;
     }
+
+    // Skip the boot data
+    image.seekg(1024);
+
+    ext2_super_block super{};
+    // read onto superblock
+    image.read(reinterpret_cast<char*>(&super), sizeof(ext2_super_block));
+    print_super_block(&super);
 }
 
 std::vector<u8> recext2fs::parse_identifier(int argc, char* argv[]) noexcept

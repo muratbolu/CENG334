@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
-    src/ext2fs_print.c
+    src/ext2fs_print.cpp
     src/main.cpp
     src/recext2fs.cpp
 )
