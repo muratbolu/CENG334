@@ -45,11 +45,28 @@ recext2fs::recext2fs(int argc, char* argv[]) noexcept
     image.read(reinterpret_cast<char*>(&super), sizeof(ext2_super_block));
     print_super_block(&super);
 
-    std::uint64_t block_size{ EXT2_UNLOG(super.log_block_size) };
+    u64 block_size{ EXT2_UNLOG(super.log_block_size) };
+    auto block_position = [block_size](u32 pos) -> i64
+    { return static_cast<i64>(pos * block_size); };
 
     // Skip the super block
     curr_pos += EXT2_SUPER_BLOCK_SIZE;
     image.seekg(curr_pos);
+
+    ext2_block_group_descriptor block_group{};
+    // read onto block group
+    image.read(reinterpret_cast<char*>(&block_group),
+               sizeof(ext2_block_group_descriptor));
+    print_group_descriptor(&block_group);
+
+    // go to block bitmap
+    image.seekg(block_position(block_group.block_bitmap));
+    for (u32 i{ 0 }; i < super.blocks_per_group; ++i)
+    {
+        // TODO: check if a block is used
+        // if used, change the corresponding bit to one
+        // else, skip
+    }
 }
 
 std::vector<u8> recext2fs::parse_identifier(int argc, char* argv[]) noexcept
