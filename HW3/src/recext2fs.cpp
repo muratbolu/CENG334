@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -19,7 +20,15 @@ recext2fs::recext2fs(int argc, char* argv[]) noexcept
     image_location = std::string{ argv[1] };
     data_identifier = parse_identifier(argc, argv);
 
-    std::ifstream image{ image_location };
+    image.open(image_location,
+               std::ios_base::in | std::ios_base::out | std::ios_base::binary);
+
+    if (!image.is_open())
+    {
+        std::cerr << "Could not open the image: " << image_location
+                  << std::endl;
+        return;
+    }
 }
 
 std::vector<u8> recext2fs::parse_identifier(int argc, char* argv[]) noexcept
