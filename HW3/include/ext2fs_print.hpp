@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ext2fs.h"
+#include "ext2fs.hpp"
 #include <sys/stat.h>
 
 #define CEIL(num, denom) ((num) / (denom) + ((num) % (denom) ? 1U : 0U))

@@ -1,5 +1,5 @@
 #include "ext2fs_print.hpp"
-#include "ext2fs.h"
+#include "ext2fs.hpp"
 
 #include <cstdio>
 #include <cstdlib>

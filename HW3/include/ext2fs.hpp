@@ -1,5 +1,4 @@
-#ifndef __EXT2FS_H__
-#define __EXT2FS_H__
+#pragma once
 
 #include <cstdint>
 
@@ -127,5 +126,3 @@ struct ext2_dir_entry
     char name[]; /* Where the name starts. This is called a 'flexible array
                     member', learn! */
 };
-
-#endif
