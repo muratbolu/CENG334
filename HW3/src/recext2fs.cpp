@@ -45,8 +45,7 @@ recext2fs::recext2fs(int argc, char* argv[]) noexcept
     image.read(reinterpret_cast<char*>(&super), sizeof(ext2_super_block));
     print_super_block(&super);
 
-    std::uint32_t block_size{ static_cast<uint32_t>(
-      std::pow(2, 10 + super.log_block_size)) };
+    std::uint64_t block_size{ EXT2_UNLOG(super.log_block_size) };
 
     // Skip the super block
     curr_pos += EXT2_SUPER_BLOCK_SIZE;
