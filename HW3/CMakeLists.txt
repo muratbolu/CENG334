@@ -10,6 +10,7 @@ set(SOURCES
     src/ext2fs_print.c
     src/identifier.cpp
     src/main.cpp
+    src/recext2fs.cpp
 )
 
 add_executable (${PROJECT_NAME} ${SOURCES})

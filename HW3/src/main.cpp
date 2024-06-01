@@ -1,7 +1,7 @@
-#include <iostream>
+#include "recext2fs.hpp"
 
 int main()
 {
-    std::cout << "Hello, World!\n";
+    recext2fs{};
     return 0;
 }
