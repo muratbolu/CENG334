@@ -3,6 +3,8 @@
 #include "ext2fs.h"
 #include "ext2fs_print.hpp"
 
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <ios>
@@ -33,13 +35,22 @@ recext2fs::recext2fs(int argc, char* argv[]) noexcept
         return;
     }
 
+    std::ifstream::pos_type curr_pos{ 0 };
     // Skip the boot data
-    image.seekg(1024);
+    curr_pos += EXT2_BOOT_BLOCK_SIZE;
+    image.seekg(curr_pos);
 
     ext2_super_block super{};
     // read onto superblock
     image.read(reinterpret_cast<char*>(&super), sizeof(ext2_super_block));
     print_super_block(&super);
+
+    std::uint32_t block_size{ static_cast<uint32_t>(
+      std::pow(2, 10 + super.log_block_size)) };
+
+    // Skip the super block
+    curr_pos += EXT2_SUPER_BLOCK_SIZE;
+    image.seekg(curr_pos);
 }
 
 std::vector<u8> recext2fs::parse_identifier(int argc, char* argv[]) noexcept
