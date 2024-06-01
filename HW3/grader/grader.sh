@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 truth_file_name="${1}.img"
 starting_file_name="${2}.img"
