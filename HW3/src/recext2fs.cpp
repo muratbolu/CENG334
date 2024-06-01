@@ -1,5 +1,7 @@
 #include "recext2fs.hpp"
 
+#include "ext2fs.h"
+
 #include <cstdio>
 #include <fstream>
 #include <ios>

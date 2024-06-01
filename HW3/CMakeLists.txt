@@ -8,7 +8,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
     src/ext2fs_print.c
-    src/identifier.cpp
     src/main.cpp
     src/recext2fs.cpp
 )
