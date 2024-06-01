@@ -13,7 +13,8 @@ class recext2fs
     using u64 = std::uint64_t;
     using i64 = std::int64_t;
 
-    explicit recext2fs(int argc, char* argv[]) noexcept;
+    explicit recext2fs(int argc, char* argv[]);
+    void recover_bitmap() noexcept;
 
    private:
     std::string image_location;
