@@ -68,31 +68,30 @@ void recext2fs::recover_bitmap() noexcept
     char bits{ 0 };
     for (u32 i{ 0 }; i < this->super_block.blocks_per_group; ++i)
     {
-        // TODO: check if a block is used
-        // if used, change the corresponding bit to one
-        // else, skip
-        if (i % 8 == 0)
+        std::fstream block{ image_location };
+        pos curr_pos{ get_block_position(0, i) };
+        block.seekg(curr_pos);
+        for (u32 j{ 0 }; j < this->block_size; ++j)
         {
-            bits = 0;
-        }
-
-        {
-            std::fstream block{ image_location };
-            pos curr_pos{ get_block_position(0, i) };
-            block.seekg(curr_pos);
-            for (u32 j{ 0 }; j < this->block_size; ++j)
+            char temp{ 0 };
+            block.read(&temp, 1);
+            if (temp != 0)
             {
-                char temp{ 0 };
-                block.read(&temp, 1);
-                if (temp != 0)
-                {
-                    bits &= (1 << (i % 8));
-                    break;
-                }
+                bits |= (1 << (i % 8));
+                break;
             }
         }
-        static_assert(sizeof(bits) == 1);
-        image.write(&bits, sizeof(bits));
+        if (i > 0 && i % 8 == 0)
+        {
+            char temp{ bits };
+            for (u32 j{ 0 }; j < 8; ++j)
+            {
+                temp |= ((bits & (1 << i)) << (7 - i));
+            }
+            static_assert(sizeof(bits) == 1);
+            image.write(&bits, sizeof(bits));
+            bits = 0;
+        }
     }
 }
 
