@@ -21,7 +21,7 @@ class recext2fs
 
    private:
     std::string image_location;
-    std::ifstream image;
+    std::fstream image;
     std::vector<u8> data_identifier;
 
     ext2_super_block super_block{};

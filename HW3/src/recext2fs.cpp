@@ -3,6 +3,7 @@
 #include "ext2fs.hpp"
 #include "ext2fs_print.hpp"
 
+#include <assert.h>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -17,7 +18,7 @@ using u8 = std::uint8_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using i64 = std::int64_t;
-using pos = std::ifstream::pos_type;
+using pos = std::fstream::pos_type;
 
 recext2fs::recext2fs(int argc, char* argv[])
 {
@@ -64,11 +65,34 @@ void recext2fs::recover_bitmap() noexcept
 
     // go to block bitmap
     image.seekg(get_block_position(0, bg.block_bitmap));
+    char bits{ 0 };
     for (u32 i{ 0 }; i < this->super_block.blocks_per_group; ++i)
     {
         // TODO: check if a block is used
         // if used, change the corresponding bit to one
         // else, skip
+        if (i % 8 == 0)
+        {
+            bits = 0;
+        }
+
+        {
+            std::fstream block{ image_location };
+            pos curr_pos{ get_block_position(0, i) };
+            block.seekg(curr_pos);
+            for (u32 j{ 0 }; j < this->block_size; ++j)
+            {
+                char temp{ 0 };
+                block.read(&temp, 1);
+                if (temp != 0)
+                {
+                    bits &= (1 << (i % 8));
+                    break;
+                }
+            }
+        }
+        static_assert(sizeof(bits) == 1);
+        image.write(&bits, sizeof(bits));
     }
 }
 
