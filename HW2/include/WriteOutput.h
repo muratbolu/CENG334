@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+#define GRADING
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,7 +21,7 @@ typedef enum Action {
 
 void InitWriteOutput();
 unsigned long long GetTimestamp();
-void PrintThreadId();
+void PrintThreadId(FILE *f);
 
 /**
  *
@@ -28,7 +30,7 @@ void PrintThreadId();
  * @param connectorID
  * @param action
  */
-void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Action action);
+//void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Action action);
 void WriteOutput(int carID, char connector_type, int connectorID, Action action);
 #ifdef __cplusplus
 }

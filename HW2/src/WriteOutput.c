@@ -20,10 +20,16 @@ void PrintThreadId(FILE *f)
 {
     pthread_t tid = pthread_self();
     size_t i;
+#ifndef GRADING
     fprintf(f, "ThreadID: ");
+#endif
     for (i=0; i<sizeof(pthread_t); ++i)
         fprintf(f, "%02x", *(((unsigned char*)&tid) + i));
+#ifndef GRADING
     fprintf(f, ", ");
+#else
+    fprintf(f, " ");
+#endif
 }
 
 void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Action action) {
@@ -31,6 +37,9 @@ void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Acti
     pthread_mutex_lock(&mutexWrite);
 
     PrintThreadId(f);
+#ifdef GRADING
+    fprintf(f,"%d %c%d %llu %d\n", carID, connector_type, connectorID, time, (int)action);
+#else
     fprintf(f,"CarID: %d, Object: %c%d, time stamp: %llu, AID: %d ", carID, connector_type, connectorID, time, (int)action);
     switch (action) {
         case TRAVEL:
@@ -49,6 +58,7 @@ void WriteOutputf(FILE *f, int carID, char connector_type, int connectorID, Acti
             fprintf(f, "Wrong argument format.\n");
             break;
     }
+#endif
     pthread_mutex_unlock(&mutexWrite);
 }
 
